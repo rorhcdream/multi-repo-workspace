@@ -1,0 +1,16 @@
+{
+  "name": "workspace-manager",
+  "owner": {
+    "name": "jaewoong.kim"
+  },
+  "metadata": {
+    "description": "Multi-repo workspace with copy-on-write via git worktrees"
+  },
+  "plugins": [
+    {
+      "name": "workspace-manager",
+      "source": "./",
+      "description": "Multi-repo workspace with copy-on-write via git worktrees"
+    }
+  ]
+}

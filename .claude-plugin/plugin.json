@@ -1,0 +1,5 @@
+{
+  "name": "workspace-manager",
+  "description": "Multi-repo workspace with copy-on-write via git worktrees",
+  "version": "0.1.0"
+}

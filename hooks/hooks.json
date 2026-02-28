@@ -1,0 +1,16 @@
+{
+  "description": "Enforce read-only repos/ in multi-repo workspaces",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/enforce-readonly-repos.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
