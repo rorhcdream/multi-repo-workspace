@@ -35,11 +35,14 @@ Arguments: $ARGUMENTS
    for repo in <source-dir>/*/; do
      name=$(basename "$repo")
      if [ -d "$repo/.git" ] && [ ! -d "<workspace>/repos/<category>/$name" ]; then
-       git clone "$repo" "<workspace>/repos/<category>/$name"
+       origin=$(git -C "$repo" remote get-url origin 2>/dev/null)
+       if [ -n "$origin" ]; then
+         git clone "$origin" "<workspace>/repos/<category>/$name"
+       fi
      fi
    done
    ```
-   Only clone directories that are git repos. Skip if already cloned. If no source directory was given for a category, leave `repos/<category>/` empty for the user to populate manually.
+   Clone using each repo's origin remote URL so the workspace repos point to the correct upstream (e.g., GitHub), not the local source directory. Skip repos without an origin remote. Skip if already cloned. If no source directory was given for a category, leave `repos/<category>/` empty for the user to populate manually.
 
 6. **Create `.workspace` marker:**
    ```bash
