@@ -28,21 +28,43 @@ Task to clean: $ARGUMENTS
    ```
    If there are uncommitted changes, warn the user and ask for confirmation before proceeding.
 
-4. **Remove each worktree** properly:
+4. **Record branch names** before removing worktrees (needed for cleanup):
    ```bash
    for dir in <workspace>/tasks/<task-name>/*/; do
+     if [ -f "$dir/.git" ]; then
+       branch=$(git -C "$dir" rev-parse --abbrev-ref HEAD)
+       echo "$(basename $dir): $branch"
+     fi
+   done
+   ```
+   Save the repo-to-branch mapping for step 7.
+
+5. **Remove each worktree** properly (skip the `repos` symlink):
+   ```bash
+   for dir in <workspace>/tasks/<task-name>/*/; do
+     [ -L "$dir" ] && continue  # skip symlinks (repos/)
      if [ -f "$dir/.git" ]; then
        git worktree remove "$dir"
      fi
    done
    ```
 
-5. **Remove the task directory:**
+6. **Remove the task directory:**
    ```bash
    rm -rf <workspace>/tasks/<task-name>
    ```
 
-6. **Prune stale worktree references** in source repos:
+7. **Clean up task branches.** For each branch recorded in step 4, check if it was merged and delete it:
+   ```bash
+   # For each repo/branch pair from step 4:
+   git -C <workspace>/repos/<category>/<repo> branch --merged | grep -q "<branch>"
+   # If merged, safe to delete:
+   git -C <workspace>/repos/<category>/<repo> branch -d <branch>
+   # If NOT merged, warn the user and ask before deleting with -D
+   ```
+   Always inform the user which branches were deleted and which were kept.
+
+8. **Prune stale worktree references** in source repos:
    ```bash
    for repo in <workspace>/repos/*/*/; do
      if [ -d "$repo/.git" ]; then
@@ -51,4 +73,4 @@ Task to clean: $ARGUMENTS
    done
    ```
 
-7. **Report** what was cleaned up.
+9. **Report** what was cleaned up, including which branches were deleted and which were kept.

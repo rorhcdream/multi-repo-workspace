@@ -60,10 +60,18 @@ Arguments: $ARGUMENTS
    - Use `/task-start <description>` to begin a new task.
    - Use `/task-clean` to clean up completed tasks.
 
+   ## Usage
+   After `/task-start`, launch Claude Code from the task directory:
+   ```
+   cd <workspace>/tasks/<task-name>
+   claude
+   ```
+   The sandbox automatically restricts Bash writes to the task directory.
+   The PreToolUse hook blocks Edit/Write to repos/ as an additional safety net.
+
    ## Rules
    - repos/ is read-only. To modify a repo, create a worktree under tasks/.
    - Reading repos/ is free and unrestricted.
-   - A PreToolUse hook blocks writes to repos/ as a safety net.
    ```
 
 8. **Report summary:** how many repos cloned per category, total workspace size.

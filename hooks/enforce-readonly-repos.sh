@@ -1,6 +1,7 @@
 #!/bin/bash
 # Deterministic hook: blocks Edit/Write to files under repos/
-# This is a safety net. The workspace skill teaches Claude the rules proactively.
+# The sandbox only applies to Bash subprocesses, not Edit/Write tools.
+# This hook is the sole enforcement for Edit/Write — the sandbox handles Bash.
 
 input=$(cat)
 tool_name=$(echo "$input" | jq -r '.tool_name')
