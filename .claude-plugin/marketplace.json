@@ -1,0 +1,20 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "multi-repo-workspace",
+  "description": "Multi-repo workspace plugin marketplace",
+  "owner": {
+    "name": "Jaewoong Kim"
+  },
+  "plugins": [
+    {
+      "name": "multi-repo-workspace",
+      "description": "Manage multi-repo workspaces with copy-on-write semantics via git worktrees. Clone repos into a read-only directory, create task-scoped worktrees for changes, and enforce safe editing boundaries with sandbox and hook protections.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Jaewoong Kim"
+      },
+      "source": "./",
+      "category": "workflow"
+    }
+  ]
+}
