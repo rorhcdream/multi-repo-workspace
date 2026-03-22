@@ -21,7 +21,7 @@ Arguments: $ARGUMENTS
    mkdir -p <workspace>/.claude
    ```
 
-4. **Create `.claude/workspace-manager.local.md`** with category configuration:
+4. **Create `.claude/multi-repo-workspace.local.md`** with category configuration:
    ```markdown
    ---
    categories:
@@ -51,7 +51,7 @@ Arguments: $ARGUMENTS
    ```markdown
    # Multi-repo Workspace
 
-   This workspace is managed by the workspace-manager plugin.
+   This workspace is managed by the multi-repo-workspace plugin.
 
    ## Layout
    - `repos/` — Read-only clones. Never edit directly.
