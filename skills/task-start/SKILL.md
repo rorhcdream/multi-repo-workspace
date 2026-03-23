@@ -23,30 +23,40 @@ Task: $ARGUMENTS
    ```
    The `repos` symlink gives convenient read access to all source repos from within the task directory.
 
-   Create `.claude/settings.local.json` to enable the sandbox:
+   Create `.claude/settings.local.json` to enable the sandbox with workspace read access:
    ```json
    {
      "sandbox": {
-       "enabled": true
+       "enabled": true,
+       "filesystem": {
+         "allowRead": ["<workspace>/repos"]
+       }
      }
    }
    ```
-   This ensures the Bash sandbox is active when Claude Code launches from the task directory, regardless of the user's global settings.
+   This ensures the Bash sandbox is active and grants read access to the repos directory while writes remain restricted to the task directory.
 
-4. **Configure tmux window** (if inside tmux):
+4. **Create a prompt file** if the user provided a detailed task description:
+   Write the task description to `<workspace>/tasks/<task-name>/prompt.md`. This captures the full context for Claude Code to pick up.
+
+5. **Launch in a new tmux window** (if inside tmux):
    ```bash
    if [ -n "$TMUX" ]; then
-     tmux rename-window "<task-name>"
+     # With prompt file:
+     tmux new-window -n "<task-name>" -c "<workspace>/tasks/<task-name>" "claude --prompt-file prompt.md"
+     # Without prompt file (short/vague description):
+     tmux new-window -n "<task-name>" -c "<workspace>/tasks/<task-name>" "claude"
      tmux set-window-option automatic-rename off
    fi
    ```
+   This creates a new tmux window, cd's into the task directory, and launches Claude Code with the prompt — all in one step.
 
-5. **Tell the user to launch Claude Code from the task directory:**
+   If not inside tmux, tell the user:
    ```
    cd <workspace>/tasks/<task-name>
-   claude
+   claude --prompt-file prompt.md
    ```
-   This is important: launching from the task directory means the Bash sandbox automatically restricts writes to the task directory. Repos are readable via the `repos/` symlink but not writable via Bash. The PreToolUse hook separately blocks Edit/Write to repos/.
+   Launching from the task directory means the Bash sandbox automatically restricts writes to the task directory. Repos are readable via the `repos/` symlink but not writable via Bash. The PreToolUse hook separately blocks Edit/Write to repos/.
 
 6. **If already running inside the task directory**, proceed with the task:
    - Read across `repos/` freely to understand the problem
