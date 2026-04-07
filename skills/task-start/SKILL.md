@@ -1,6 +1,7 @@
 ---
 name: task-start
-description: This skill should be used when the user asks to "start a task", "begin working on", "fix this issue", "implement this feature", or describes work to do across one or more repos in the multi-repo workspace. Accepts a natural language task description, creates a task directory, and prepares it for launching Claude Code.
+description: Start a new task in the multi-repo workspace. Creates a task directory, writes the prompt, and launches Claude Code in a tmux window.
+disable-model-invocation: true
 allowed-tools: Read, Write, Bash, Glob, Grep
 ---
 
