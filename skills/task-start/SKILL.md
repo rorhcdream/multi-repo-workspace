@@ -42,19 +42,23 @@ Task: $ARGUMENTS
 5. **Launch in a new tmux window** (if inside tmux):
    ```bash
    if [ -n "$TMUX" ]; then
-     # With prompt file:
-     tmux new-window -n "<task-name>" -c "<workspace>/tasks/<task-name>" "claude --prompt-file prompt.md"
+     # Create a new tmux window with a shell (not claude directly, since launching
+     # claude as tmux's command causes the window to close if claude exits)
+     tmux new-window -n "<task-name>" -c "<workspace>/tasks/<task-name>"
+     tmux set-window-option -t "<task-name>" automatic-rename off
+     # Send the claude command to the shell so it stays alive after claude exits
+     # With prompt file (use $(cat prompt.md) to pass content as argument):
+     tmux send-keys -t "<task-name>" 'claude "$(cat prompt.md)"' Enter
      # Without prompt file (short/vague description):
-     tmux new-window -n "<task-name>" -c "<workspace>/tasks/<task-name>" "claude"
-     tmux set-window-option automatic-rename off
+     tmux send-keys -t "<task-name>" 'claude' Enter
    fi
    ```
-   This creates a new tmux window, cd's into the task directory, and launches Claude Code with the prompt — all in one step.
+   This creates a new tmux window with a shell, then sends the claude command to it. The shell survives if claude exits, so the user can relaunch.
 
    If not inside tmux, tell the user:
    ```
    cd <workspace>/tasks/<task-name>
-   claude --prompt-file prompt.md
+   claude "$(cat prompt.md)"
    ```
    Launching from the task directory means the Bash sandbox automatically restricts writes to the task directory. Repos are readable via the `repos/` symlink but not writable via Bash. The PreToolUse hook separately blocks Edit/Write to repos/.
 
