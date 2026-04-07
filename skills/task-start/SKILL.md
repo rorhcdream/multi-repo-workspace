@@ -29,7 +29,7 @@ Task: $ARGUMENTS
      "sandbox": {
        "enabled": true,
        "filesystem": {
-         "allowRead": ["<workspace>/repos"],
+         "allowRead": ["<workspace>/repos/**"],
          "allowWrite": ["<workspace>/repos/**/.git/**"]
        }
      }
@@ -37,8 +37,8 @@ Task: $ARGUMENTS
    ```
    This ensures the Bash sandbox is active and grants read access to the repos directory. The `allowWrite` for `.git` directories is needed because `git worktree add` must write to the source repo's `.git/` directory (worktree metadata, refs). The PreToolUse hook still blocks Edit/Write tool calls to repos/ files, so content remains read-only — only git operations are allowed through.
 
-4. **Create a prompt file** if the user provided a detailed task description:
-   Write the task description to `<workspace>/tasks/<task-name>/prompt.md`. This captures the full context for Claude Code to pick up.
+4. **Create a prompt file** with the raw user prompt as-is:
+   Write `$ARGUMENTS` verbatim to `<workspace>/tasks/<task-name>/prompt.md`. Do NOT summarize, rephrase, or interpret — pass the user's exact words so the spawned Claude gets full context.
 
 5. **Launch in a new tmux window** (if inside tmux):
    ```bash
