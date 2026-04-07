@@ -49,12 +49,19 @@ Task to clean: $ARGUMENTS
    done
    ```
 
-6. **Remove the task directory:**
+6. **Close the tmux window** for this task (if inside tmux):
+   ```bash
+   if [ -n "$TMUX" ]; then
+     tmux kill-window -t "<task-name>" 2>/dev/null || true
+   fi
+   ```
+
+7. **Remove the task directory:**
    ```bash
    rm -rf <workspace>/tasks/<task-name>
    ```
 
-7. **Clean up task branches.** For each branch recorded in step 4, check if it was merged and delete it:
+8. **Clean up task branches.** For each branch recorded in step 4, check if it was merged and delete it:
    ```bash
    # For each repo/branch pair from step 4:
    git -C <workspace>/repos/<category>/<repo> branch --merged | grep -q "<branch>"
@@ -64,7 +71,7 @@ Task to clean: $ARGUMENTS
    ```
    Always inform the user which branches were deleted and which were kept.
 
-8. **Prune stale worktree references** in source repos:
+9. **Prune stale worktree references** in source repos:
    ```bash
    for repo in <workspace>/repos/*/*/; do
      if [ -d "$repo/.git" ]; then
@@ -73,4 +80,4 @@ Task to clean: $ARGUMENTS
    done
    ```
 
-9. **Report** what was cleaned up, including which branches were deleted and which were kept.
+10. **Report** what was cleaned up, including which branches were deleted and which were kept.
