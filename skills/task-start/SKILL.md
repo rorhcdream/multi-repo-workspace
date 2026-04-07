@@ -75,6 +75,7 @@ Task: $ARGUMENTS
 
 ## Important
 
+- Do NOT investigate or explore the codebase before creating the task. This skill's job is to set up the task directory and delegate work to the spawned Claude instance. Go directly to creating the directory and launching Claude.
 - Do NOT create worktrees upfront. Only when you first need to write to a repo.
 - Do NOT pull repos automatically. The user will ask if they want updates.
 - Reading repos/ is free and unrestricted. Use it extensively for context.
