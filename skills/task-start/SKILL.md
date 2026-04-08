@@ -24,9 +24,14 @@ Task: $ARGUMENTS
    ```
    The `repos` symlink gives convenient read access to all source repos from within the task directory.
 
-   Create `.claude/settings.local.json` to enable the sandbox with repos/ access:
+   Create `.claude/settings.local.json` to enable the sandbox and allow reading repos/:
    ```json
    {
+     "permissions": {
+       "allow": [
+         "Read(<workspace>/repos/**)"
+       ]
+     },
      "sandbox": {
        "enabled": true,
        "filesystem": {
@@ -36,7 +41,7 @@ Task: $ARGUMENTS
      }
    }
    ```
-   This grants Bash read/write access to repos/ (needed for `git worktree add` which writes to `.git/`). The PreToolUse hook blocks Edit/Write tool calls to repos/ files, so content remains read-only — only git CLI operations are allowed through.
+   The `permissions.allow` grants the Read tool access to repos/ without prompting. The `sandbox.filesystem` grants Bash read/write access (needed for `git worktree add` which writes to `.git/`). The PreToolUse hook blocks Edit/Write tool calls to repos/ files, so content remains read-only — only git CLI operations are allowed through.
 
 4. **Create a prompt file** with the raw user prompt as-is:
    Write `$ARGUMENTS` verbatim to `<workspace>/tasks/<task-name>/prompt.md`. Do NOT summarize, rephrase, or interpret — pass the user's exact words so the spawned Claude gets full context.
