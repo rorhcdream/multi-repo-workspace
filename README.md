@@ -78,10 +78,7 @@ Removes worktrees and the task directory. Warns if there are uncommitted changes
 
 ## Safety
 
-The plugin enforces read-only repos through two independent mechanisms:
-
-1. **Bash sandbox** — When Claude launches from a task directory, shell writes are restricted to that directory only.
-2. **PreToolUse hook** — Blocks `Edit` and `Write` tool calls targeting files under `repos/`. Provides clear error messages with instructions to create a worktree instead.
+The plugin enforces read-only repos through a **PreToolUse hook** that blocks `Edit` and `Write` tool calls targeting files under `repos/`. It provides clear error messages with instructions to create a worktree instead. The Bash sandbox grants read/write access to `repos/` (needed for git worktree operations) but restricts all other writes to the task directory.
 
 ## Prerequisites
 
