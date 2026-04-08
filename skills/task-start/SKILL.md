@@ -43,10 +43,37 @@ Task: $ARGUMENTS
    ```
    The `permissions.allow` grants the Read tool access to repos/ without prompting. Note the `//` prefix — this marks it as an absolute filesystem path; a single `/` would be interpreted as relative to the settings file location. The `sandbox.filesystem` grants Bash read/write access (needed for `git worktree add` which writes to `.git/`). The PreToolUse hook blocks Edit/Write tool calls to repos/ files, so content remains read-only — only git CLI operations are allowed through.
 
-4. **Create a prompt file** with the raw user prompt as-is:
+4. **Create `CLAUDE.md`** in the task directory to orient the spawned Claude:
+   ```markdown
+   # Task: <task-name>
+
+   ## Workspace layout
+
+   - `repos/` — Symlink to source repos. **Read-only.** Browse freely for context.
+   - `./<repo>/` — Git worktrees you create for this task. Edit files here.
+
+   ## Workflow
+
+   1. Read across `repos/` to understand the problem.
+   2. When you need to modify a repo, create a worktree:
+      ```bash
+      git -C <workspace>/repos/<category>/<repo> worktree add \
+        <workspace>/tasks/<task-name>/<repo> -b <task-name>/<branch-desc>
+      ```
+   3. Edit files under `./<repo>/`, never under `repos/`.
+   4. You can create worktrees for multiple repos if the task spans them.
+
+   ## Rules
+
+   - Do NOT edit files under `repos/` — a hook will block you.
+   - Do NOT create worktrees upfront. Only when you first need to write to a repo.
+   ```
+   Replace `<workspace>`, `<task-name>`, `<category>`, and `<repo>` with actual values. The category/repo structure matches how repos are organized under `repos/`.
+
+5. **Create a prompt file** with the raw user prompt as-is:
    Write `$ARGUMENTS` verbatim to `<workspace>/tasks/<task-name>/prompt.md`. Do NOT summarize, rephrase, or interpret — pass the user's exact words so the spawned Claude gets full context.
 
-5. **Launch in a new tmux window** (if inside tmux):
+6. **Launch in a new tmux window** (if inside tmux):
    ```bash
    if [ -n "$TMUX" ]; then
      # Create a new tmux window with a shell (not claude directly, since launching
@@ -69,7 +96,7 @@ Task: $ARGUMENTS
    ```
    Launching from the task directory means the Bash sandbox automatically restricts writes to the task directory. Repos are readable via the `repos/` symlink but not writable via Bash. The PreToolUse hook separately blocks Edit/Write to repos/.
 
-6. **If already running inside the task directory**, proceed with the task:
+7. **If already running inside the task directory**, proceed with the task:
    - Read across `repos/` freely to understand the problem
    - Search for relevant code, configs, and documentation
    - Identify which repos will need changes
