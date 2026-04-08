@@ -1,7 +1,7 @@
 #!/bin/bash
 # Deterministic hook: blocks Edit/Write to files under repos/
-# The sandbox only applies to Bash subprocesses, not Edit/Write tools.
-# This hook is the sole enforcement for Edit/Write — the sandbox handles Bash.
+# The sandbox allows Bash access to repos/ (needed for git worktree operations).
+# This hook is the sole enforcement keeping repos/ read-only for Edit/Write tools.
 
 input=$(cat)
 tool_name=$(echo "$input" | jq -r '.tool_name')
