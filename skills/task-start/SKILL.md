@@ -29,7 +29,7 @@ Task: $ARGUMENTS
    {
      "permissions": {
        "allow": [
-         "Read(//<workspace>/repos/**)"
+         "Read(//<workspace-absolute-path>/repos/**)"
        ]
      },
      "sandbox": {
@@ -41,7 +41,7 @@ Task: $ARGUMENTS
      }
    }
    ```
-   The `permissions.allow` grants the Read tool access to repos/ without prompting. Note the `//` prefix — this marks it as an absolute filesystem path; a single `/` would be interpreted as relative to the settings file location. The `sandbox.filesystem` grants Bash read/write access (needed for `git worktree add` which writes to `.git/`). The PreToolUse hook blocks Edit/Write tool calls to repos/ files, so content remains read-only — only git CLI operations are allowed through.
+   The `permissions.allow` grants the Read tool access to repos/ without prompting. The `//` prefix marks it as an absolute filesystem path (a single `/` is interpreted as relative). Since `<workspace>` is already an absolute path starting with `/`, the result should be exactly two slashes: `//Users/...`, not three. The `sandbox.filesystem` grants Bash read/write access (needed for `git worktree add` which writes to `.git/`). The PreToolUse hook blocks Edit/Write tool calls to repos/ files, so content remains read-only — only git CLI operations are allowed through.
 
 4. **Create `CLAUDE.md`** in the task directory to orient the spawned Claude:
    ```markdown
