@@ -1,5 +1,5 @@
 {
   "name": "multi-repo-workspace",
   "description": "Multi-repo workspace with copy-on-write via git worktrees",
-  "version": "0.1.5"
+  "version": "0.1.6"
 }

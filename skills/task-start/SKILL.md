@@ -22,14 +22,14 @@ Task: $ARGUMENTS
    ${CLAUDE_PLUGIN_ROOT}/scripts/task-setup.sh "<workspace>" "<task-name>" "$ARGUMENTS"
    ```
    The script creates:
-   - Task directory with `repos/` symlink
+   - Task directory at `<workspace>/tasks/<task-name>/`
    - `.claude/settings.local.json` (sandbox config + Read permission for repos/)
    - `CLAUDE.md` (workspace layout and workflow instructions)
    - `prompt.md` (raw user prompt, verbatim)
    - Launches Claude in a new tmux window (or prints instructions if not in tmux)
 
 4. **If already running inside the task directory**, proceed with the task:
-   - Read across `repos/` freely to understand the problem
+   - Read across `<workspace>/repos/` freely to understand the problem
    - Search for relevant code, configs, and documentation
    - Identify which repos will need changes
    - When you need to write to a repo, create a worktree:
@@ -37,7 +37,7 @@ Task: $ARGUMENTS
      git -C <workspace>/repos/<category>/<repo> worktree add \
        <workspace>/tasks/<task-name>/<repo> -b <task-name>/<branch-desc>
      ```
-   - Edit files under the worktree (e.g., `./<repo>/`), not under `repos/`
+   - Edit files under the worktree (e.g., `./<repo>/`), not under `<workspace>/repos/`
 
 ## Important
 

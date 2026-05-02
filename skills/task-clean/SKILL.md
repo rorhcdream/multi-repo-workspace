@@ -39,10 +39,9 @@ Task to clean: $ARGUMENTS
    ```
    Save the repo-to-branch mapping for step 7.
 
-5. **Remove each worktree** properly (skip the `repos` symlink):
+5. **Remove each worktree** properly:
    ```bash
    for dir in <workspace>/tasks/<task-name>/*/; do
-     [ -L "$dir" ] && continue  # skip symlinks (repos/)
      if [ -f "$dir/.git" ]; then
        git worktree remove "$dir"
      fi

@@ -20,7 +20,6 @@ Locate the workspace root by finding the nearest `.workspace` marker file in the
 │   └── <category>/    # One subdirectory per category (from config)
 ├── tasks/             # Active task worktrees (copy-on-write targets)
 │   └── <task>/        # One directory per task — launch Claude Code here
-│       ├── repos/     # Symlink to <workspace>/repos/ for convenient reading
 │       └── <repo>/    # Git worktree for each modified repo
 ├── .claude/
 │   └── multi-repo-workspace.local.md  # Category configuration
@@ -35,7 +34,7 @@ Claude Code should be launched from a task directory, not the workspace root:
 cd <workspace>/tasks/<task-name>
 claude
 ```
-This means the Bash sandbox automatically restricts writes to the task directory. The `repos/` symlink provides read access to all source repos. The PreToolUse hook separately blocks Edit/Write to repos/.
+This means the Bash sandbox automatically restricts writes to the task directory. Source repos at `<workspace>/repos/` are readable directly via absolute path. The PreToolUse hook separately blocks Edit/Write to repos/.
 
 ## Core rules
 

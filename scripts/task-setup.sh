@@ -10,7 +10,6 @@ TASK_DIR="$WORKSPACE/tasks/$TASK_NAME"
 
 # 1. Create directory structure
 mkdir -p "$TASK_DIR/.claude"
-ln -sfn "$WORKSPACE/repos" "$TASK_DIR/repos"
 
 # 2. Write sandbox config with Read permission for repos/
 cat > "$TASK_DIR/.claude/settings.local.json" <<SETTINGS
@@ -37,23 +36,23 @@ cat > "$TASK_DIR/CLAUDE.md" <<CLAUDEMD
 
 ## Workspace layout
 
-- \`repos/\` — Symlink to source repos. **Read-only.** Browse freely for context.
+- \`$WORKSPACE/repos/\` — Source repos. **Read-only.** Browse freely for context.
 - \`./\<repo\>/\` — Git worktrees you create for this task. Edit files here.
 
 ## Workflow
 
-1. Read across \`repos/\` to understand the problem.
+1. Read across \`$WORKSPACE/repos/\` to understand the problem.
 2. When you need to modify a repo, create a worktree:
    \`\`\`bash
    git -C $WORKSPACE/repos/<category>/<repo> worktree add \\
      $TASK_DIR/<repo> -b $TASK_NAME/<branch-desc>
    \`\`\`
-3. Edit files under \`./\<repo\>/\`, never under \`repos/\`.
+3. Edit files under \`./\<repo\>/\`, never under \`$WORKSPACE/repos/\`.
 4. You can create worktrees for multiple repos if the task spans them.
 
 ## Rules
 
-- Do NOT edit files under \`repos/\` — a hook will block you.
+- Do NOT edit files under \`$WORKSPACE/repos/\` — a hook will block you.
 - Do NOT create worktrees upfront. Only when you first need to write to a repo.
 CLAUDEMD
 

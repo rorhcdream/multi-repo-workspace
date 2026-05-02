@@ -16,7 +16,6 @@ Read from all your repos freely. When you need to edit, the plugin creates isola
 │       └── shared-lib/
 ├── tasks/                # Isolated task worktrees (copy-on-write)
 │   └── fix-auth-bug/
-│       ├── repos/        # Symlink → ../../repos (for reading)
 │       ├── backend/      # Git worktree (for editing)
 │       └── frontend/     # Git worktree (for editing)
 ├── .workspace            # Workspace marker file
@@ -48,7 +47,7 @@ Provide category names (e.g., `org`, `public`, `personal`) and source directorie
 /task-start fix authentication timeout in backend
 ```
 
-Creates `tasks/fix-authentication-timeout-in-backend/` with a symlink to `repos/` for reading.
+Creates `tasks/fix-authentication-timeout-in-backend/` configured with read access to `repos/`.
 
 ### 3. Launch Claude from the task directory
 
@@ -57,7 +56,7 @@ cd tasks/fix-authentication-timeout-in-backend
 claude
 ```
 
-Claude starts with sandbox enabled. Read any repo via `repos/`, create worktrees when you need to edit.
+Claude starts with sandbox enabled. Read any repo under `<workspace>/repos/`, create worktrees when you need to edit.
 
 ### 4. Clean up when done
 
