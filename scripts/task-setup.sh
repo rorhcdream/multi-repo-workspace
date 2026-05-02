@@ -42,7 +42,7 @@ cat > "$TASK_DIR/CLAUDE.md" <<CLAUDEMD
 ## Workflow
 
 1. Read across \`$WORKSPACE/repos/\` to understand the problem.
-2. When you need to modify a repo, create a worktree:
+2. When you need to modify a repo, create a worktree. **Run this command with \`dangerouslyDisableSandbox: true\`** — \`git worktree add\` writes to the source repo's \`.git/\` directory, which is outside the task directory and blocked by the sandbox.
    \`\`\`bash
    git -C $WORKSPACE/repos/<category>/<repo> worktree add \\
      $TASK_DIR/<repo> -b $TASK_NAME/<branch-desc>
