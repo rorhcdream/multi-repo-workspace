@@ -7,6 +7,7 @@ WORKSPACE="$1"
 TASK_NAME="$2"
 PROMPT="${3:-}"
 TASK_DIR="$WORKSPACE/tasks/$TASK_NAME"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # 1. Create directory structure
 mkdir -p "$TASK_DIR/.claude"
@@ -42,11 +43,11 @@ cat > "$TASK_DIR/CLAUDE.md" <<CLAUDEMD
 ## Workflow
 
 1. Read across \`$WORKSPACE/repos/\` to understand the problem.
-2. When you need to modify a repo, create a worktree. **Run this command with \`dangerouslyDisableSandbox: true\`** — \`git worktree add\` writes to the source repo's \`.git/\` directory, which is outside the task directory and blocked by the sandbox.
+2. When you need to modify a repo, create a worktree using the helper script. **Run with \`dangerouslyDisableSandbox: true\`** — it fetches from the remote and writes to the source repo's \`.git/\` directory, both of which the sandbox blocks.
    \`\`\`bash
-   git -C $WORKSPACE/repos/<category>/<repo> worktree add \\
-     $TASK_DIR/<repo> -b $TASK_NAME/<branch-desc>
+   $SCRIPT_DIR/worktree-add.sh "$WORKSPACE" "$TASK_NAME" <category> <repo> <branch-desc>
    \`\`\`
+   The script fetches origin's default branch first, then creates the worktree branched from \`origin/<default>\` so you always start from the latest \`main\`/\`master\`.
 3. Edit files under \`./\<repo\>/\`, never under \`$WORKSPACE/repos/\`.
 4. You can create worktrees for multiple repos if the task spans them.
 

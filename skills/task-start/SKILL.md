@@ -32,10 +32,9 @@ Task: $ARGUMENTS
    - Read across `<workspace>/repos/` freely to understand the problem
    - Search for relevant code, configs, and documentation
    - Identify which repos will need changes
-   - When you need to write to a repo, create a worktree:
+   - When you need to write to a repo, create a worktree branched from the latest `origin/<default>` using the helper script:
      ```bash
-     git -C <workspace>/repos/<category>/<repo> worktree add \
-       <workspace>/tasks/<task-name>/<repo> -b <task-name>/<branch-desc>
+     ${CLAUDE_PLUGIN_ROOT}/scripts/worktree-add.sh <workspace> <task-name> <category> <repo> <branch-desc>
      ```
    - Edit files under the worktree (e.g., `./<repo>/`), not under `<workspace>/repos/`
 
