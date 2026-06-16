@@ -19,7 +19,8 @@ Task to clean: $ARGUMENTS
      ```
      Verify that `<workspace>/tasks/$task_name/` exists. If not, fall back to listing and asking.
    - If `$ARGUMENTS` is a task name or description, use it directly.
-   - If `$ARGUMENTS` is empty, list active tasks and ask the user:
+   - If `$ARGUMENTS` is empty and the current working directory is inside `<workspace>/tasks/<task-name>/`, use that task name. Before cleanup, `cd <workspace>` so subsequent commands don't run inside the soon-to-be-deleted directory.
+   - If `$ARGUMENTS` is empty and not in a task directory, list active tasks and ask the user:
      ```bash
      ls <workspace>/tasks/
      ```
