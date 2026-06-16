@@ -1,6 +1,6 @@
 ---
 name: task-clean
-description: This skill should be used when the user asks to "clean up a task", "remove task", "finish task", "delete worktrees", or wants to clean up completed task worktrees and directories. Accepts a task name or natural language description.
+description: This skill should be used when the user asks to "clean up a task", "remove task", "finish task", "delete worktrees", or wants to clean up completed task worktrees and directories. Accepts a task name, a tmux window number (e.g. "3" — resolves to that window's name), or a natural language description.
 allowed-tools: Bash, Read, Glob, Grep
 ---
 
@@ -12,10 +12,17 @@ Task to clean: $ARGUMENTS
 
 1. **Find workspace root** by locating the `.workspace` marker.
 
-2. **Identify the task.** If no specific task is named, list active tasks and ask the user:
-   ```bash
-   ls <workspace>/tasks/
-   ```
+2. **Identify the task.**
+   - If `$ARGUMENTS` is a plain integer (e.g. `3`), treat it as a tmux window number and resolve the task name from the window name:
+     ```bash
+     task_name=$(tmux display-message -p -t <number> '#W')
+     ```
+     Verify that `<workspace>/tasks/$task_name/` exists. If not, fall back to listing and asking.
+   - If `$ARGUMENTS` is a task name or description, use it directly.
+   - If `$ARGUMENTS` is empty, list active tasks and ask the user:
+     ```bash
+     ls <workspace>/tasks/
+     ```
 
 3. **Check for uncommitted changes** in each worktree before removing:
    ```bash
