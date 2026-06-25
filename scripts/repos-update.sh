@@ -1,5 +1,5 @@
 #!/bin/bash
-# Updates all repos under <workspace>/repos/ to their default branches.
+# Updates all repos under <workspace>/repos/ to their default branches, in parallel.
 # If the repo is on its default branch, pull --ff-only.
 # Otherwise, fetch the default branch into the local default branch ref.
 # Usage: repos-update.sh <workspace>
@@ -13,9 +13,9 @@ if [ ! -d "$REPOS_DIR" ]; then
   exit 1
 fi
 
-for repo in "$REPOS_DIR"/*/*/; do
-  [ -d "$repo/.git" ] || [ -f "$repo/.git" ] || continue
-
+update_repo() {
+  local repo="$1"
+  local name category default current result
   name=$(basename "$repo")
   category=$(basename "$(dirname "$repo")")
 
@@ -27,7 +27,7 @@ for repo in "$REPOS_DIR"/*/*/; do
 
   if [ -z "$default" ]; then
     echo "=== $category/$name: no default branch, skip ==="
-    continue
+    return
   fi
 
   current=$(git -C "$repo" rev-parse --abbrev-ref HEAD)
@@ -37,4 +37,22 @@ for repo in "$REPOS_DIR"/*/*/; do
     result=$(git -C "$repo" fetch origin "$default:$default" 2>&1 | tail -1)
   fi
   echo "=== $category/$name ($default): $result ==="
+}
+
+# Run each repo update in the background, capturing its output to a per-repo file
+# so concurrent network output doesn't interleave. Print in order after all finish.
+tmpdir=$(mktemp -d)
+trap 'rm -rf "$tmpdir"' EXIT
+
+count=0
+for repo in "$REPOS_DIR"/*/*/; do
+  [ -d "$repo/.git" ] || [ -f "$repo/.git" ] || continue
+  count=$((count + 1))
+  update_repo "$repo" >"$tmpdir/$count.out" 2>&1 &
+done
+
+wait
+
+for n in $(seq 1 "$count"); do
+  [ -f "$tmpdir/$n.out" ] && cat "$tmpdir/$n.out"
 done
