@@ -48,7 +48,7 @@ Task to clean: $ARGUMENTS
    done
    ```
    (`gh -R` accepts the origin URL directly, so there's no need to parse out `owner/repo`.) Classify each branch:
-   - `"state": "MERGED"` (non-null `mergedAt`) → merged; safe to delete in step 6.
+   - `"state": "MERGED"` (non-null `mergedAt`) → **fully merged; safe to delete in step 6.** A merged PR contains *every* commit on the branch. A squash merge collapses them into one commit titled with the PR, so the branch's individual commit subjects will be absent from the default branch and `git log <default>..<branch>` will still show commits "ahead" — this is normal and does **not** mean a commit was unpushed or lost. Trust the PR state.
    - `OPEN`, or no PR → keep; do not delete.
    - `gh` unavailable, repo not on GitHub, or the user says it was merged elsewhere → fall back to trusting the user after confirming. Don't insist a branch is unmerged just because `git branch -d` later fails.
 
