@@ -62,7 +62,21 @@ if [ -n "$PROMPT" ]; then
   printf '%s\n' "$PROMPT" > "$TASK_DIR/prompt.md"
 fi
 
-# 5. Launch in tmux or print instructions
+# 5. Pre-trust the task dir so Claude honors .claude/settings.local.json.
+#    Claude ignores permissions.allow entries from untrusted directories, and a
+#    non-interactively launched task never gets the trust dialog accepted.
+CLAUDE_JSON="$HOME/.claude.json"
+if command -v jq >/dev/null 2>&1 && [ -f "$CLAUDE_JSON" ]; then
+  tmp=$(mktemp)
+  if jq --arg dir "$TASK_DIR" '.projects[$dir].hasTrustDialogAccepted = true' "$CLAUDE_JSON" > "$tmp"; then
+    mv "$tmp" "$CLAUDE_JSON"
+  else
+    rm -f "$tmp"
+    echo "WARNING: could not pre-trust $TASK_DIR in $CLAUDE_JSON" >&2
+  fi
+fi
+
+# 6. Launch in tmux or print instructions
 if [ -n "${TMUX:-}" ]; then
   tmux new-window -n "$TASK_NAME" -c "$TASK_DIR"
   tmux set-window-option -t "$TASK_NAME" automatic-rename off
