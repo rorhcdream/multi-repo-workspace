@@ -15,17 +15,27 @@ TASK_NAME="$2"
 FORCE="${3:-}"
 TASK_DIR="$WORKSPACE/tasks/$TASK_NAME"
 
+# Runtime/noise files that must not count as uncommitted work — otherwise they'd
+# trigger the abort below and force an unnecessary confirmation. Matched at any
+# depth. Override with TASK_CLEAN_IGNORE (space-separated basenames/globs).
+read -ra _ignore_globs <<< "${TASK_CLEAN_IGNORE:-nohup.out *.log}"
+ignore_pathspec=()
+for g in "${_ignore_globs[@]}"; do
+  ignore_pathspec+=(":(exclude)*$g")
+done
+
 if [ ! -d "$TASK_DIR" ]; then
   echo "No task directory at $TASK_DIR" >&2
   exit 1
 fi
 
-# 1. Pre-flight: check for uncommitted changes in any worktree.
+# 1. Pre-flight: check for uncommitted changes in any worktree (ignoring noise).
 dirty=""
 for dir in "$TASK_DIR"/*/; do
   [ -e "$dir/.git" ] || continue
-  if [ -n "$(git -C "$dir" status --porcelain)" ]; then
-    dirty="$dirty\n=== $(basename "$dir") ===\n$(git -C "$dir" status --short)"
+  status=$(git -C "$dir" status --porcelain -- . "${ignore_pathspec[@]}")
+  if [ -n "$status" ]; then
+    dirty="$dirty\n=== $(basename "$dir") ===\n$status"
   fi
 done
 

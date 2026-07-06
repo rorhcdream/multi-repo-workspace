@@ -25,16 +25,16 @@ Task to clean: $ARGUMENTS
      ls <workspace>/tasks/
      ```
 
-3. **Check for uncommitted changes** in each worktree before removing:
+3. **Check for uncommitted changes** in each worktree before removing. Ignore runtime noise (`nohup.out`, `*.log`) so it doesn't trigger a needless prompt — mirror the cleanup script, which excludes the same paths:
    ```bash
    for dir in <workspace>/tasks/<task-name>/*/; do
      if [ -e "$dir/.git" ]; then
        echo "=== $(basename $dir) ==="
-       git -C "$dir" status --short
+       git -C "$dir" status --short -- . ':(exclude)*nohup.out' ':(exclude)*.log'
      fi
    done
    ```
-   If there are uncommitted changes, warn the user and ask for confirmation before proceeding. Pass `--force` to the cleanup script (step 4) only after the user confirms.
+   If there are real uncommitted changes, warn the user and ask for confirmation before proceeding. Pass `--force` to the cleanup script (step 5) only after the user confirms. (The list is overridable via the `TASK_CLEAN_IGNORE` env var — space-separated basenames/globs.)
 
 4. **Assess each branch's merge status — before running the cleanup script.** GitHub's PR merge state is the authoritative signal (it knows about squash *and* rebase merges, which local history can't show). Query it so you have the branch→repo mapping and a full picture up front.
    ```bash
