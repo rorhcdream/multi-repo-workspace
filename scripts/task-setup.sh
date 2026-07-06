@@ -42,14 +42,18 @@ cat > "$TASK_DIR/CLAUDE.md" <<CLAUDEMD
 
 ## Workflow
 
-1. Read across \`$WORKSPACE/repos/\` to understand the problem.
-2. When you need to modify a repo, create a worktree using the helper script. **Run with \`dangerouslyDisableSandbox: true\`** — it fetches from the remote and writes to the source repo's \`.git/\` directory, both of which the sandbox blocks.
+1. Before reading a repo for context, update it to the latest default branch — but only the repos you'll actually read. **Run with \`dangerouslyDisableSandbox: true\`** (needs network):
+   \`\`\`bash
+   $SCRIPT_DIR/repos-update.sh "$WORKSPACE" <repo> [<repo> ...]
+   \`\`\`
+2. Read across \`$WORKSPACE/repos/\` to understand the problem.
+3. When you need to modify a repo, create a worktree using the helper script. **Run with \`dangerouslyDisableSandbox: true\`** — it fetches from the remote and writes to the source repo's \`.git/\` directory, both of which the sandbox blocks.
    \`\`\`bash
    $SCRIPT_DIR/worktree-add.sh "$WORKSPACE" "$TASK_NAME" <category> <repo> <branch-desc>
    \`\`\`
    The script fetches origin's default branch first, then creates the worktree branched from \`origin/<default>\` so you always start from the latest \`main\`/\`master\`.
-3. Edit files under \`./\<repo\>/\`, never under \`$WORKSPACE/repos/\`.
-4. You can create worktrees for multiple repos if the task spans them.
+4. Edit files under \`./\<repo\>/\`, never under \`$WORKSPACE/repos/\`.
+5. You can create worktrees for multiple repos if the task spans them.
 
 ## Rules
 

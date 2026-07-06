@@ -12,9 +12,11 @@ Update all source repos in the multi-repo workspace to their remote default bran
 
 2. **Run the update script** with `dangerouslyDisableSandbox: true` (git pull/fetch needs network and credential access):
    ```bash
-   ${CLAUDE_PLUGIN_ROOT}/scripts/repos-update.sh "<workspace>"
+   ${CLAUDE_PLUGIN_ROOT}/scripts/repos-update.sh "<workspace>" [repo-name ...]
    ```
-   For each repo under `<workspace>/repos/<category>/<repo>/`:
+   With no repo names it updates every repo. Pass one or more repo names (the `<repo>` dir basename) to update only those — e.g. `... "<workspace>" service-a service-b`.
+
+   For each selected repo under `<workspace>/repos/<category>/<repo>/`:
    - Determines its default branch from `origin/HEAD`
    - If currently on the default branch, runs `git pull --ff-only`
    - Otherwise, runs `git fetch origin <default>:<default>` to update the local default branch ref without touching the working tree
