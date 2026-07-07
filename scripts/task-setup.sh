@@ -82,14 +82,14 @@ fi
 
 # 6. Launch in tmux or print instructions
 if [ -n "${TMUX:-}" ]; then
-  tmux new-window -n "$TASK_NAME" -c "$TASK_DIR"
+  tmux new-window -d -n "$TASK_NAME" -c "$TASK_DIR"
   tmux set-window-option -t "$TASK_NAME" automatic-rename off
   if [ -n "$PROMPT" ]; then
     tmux send-keys -t "$TASK_NAME" 'claude "$(cat prompt.md)"' Enter
   else
     tmux send-keys -t "$TASK_NAME" 'claude' Enter
   fi
-  echo "Launched in tmux window: $TASK_NAME"
+  echo "Launched in background tmux window: $TASK_NAME"
 else
   echo "Task directory created: $TASK_DIR"
   echo "Run:"
