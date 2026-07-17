@@ -79,6 +79,7 @@ Removes worktrees and the task directory. Warns if there are uncommitted changes
 | `/workspace-init` | Initialize a new multi-repo workspace with categories and repo clones |
 | `/workspace` | Show workspace status — repos, active tasks, worktree info |
 | `/task-start [--codex] <description>` | Create a new task directory with isolated worktrees (add `--codex` to launch Codex instead of Claude Code) |
+| `/worktree-add <repo>` | Manually add one repo to the current task, including for convenient local reading |
 | `/task-clean <task-name>` | Clean up a completed task's worktrees and directory |
 
 ## Safety
