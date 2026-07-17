@@ -45,26 +45,46 @@ if [ -n "$dirty" ] && [ "$FORCE" != "--force" ]; then
   exit 2
 fi
 
-# 2. Record worktree dir + branch + source-repo for each worktree before removing it.
-declare -a dirs=()
-declare -a branches=()
-declare -a src_repos=()
+# 2. Gather worktrees to remove and every task branch to clean up.
+#    Each worktree gives its checked-out tip branch; a stacked-PR task also has
+#    extra branches in the same repo (refs/heads/<task-name>/*) that no worktree
+#    has checked out. Collect both, deduped.
+declare -a dirs=()          # worktree paths to remove
+declare -a wt_src_repos=()  # source repo per worktree (parallel to dirs)
+declare -a del_branches=()  # every task branch to consider deleting
+declare -a del_src_repos=() # source repo per branch (parallel to del_branches)
+seen=""                     # newline-delimited "<repo>|<branch>" set for dedupe
+                            # ponytail: breaks only if a repo path contains '|'
+
+add_branch() {  # $1=src_repo  $2=branch
+  local key
+  key=$'\n'"$1|$2"$'\n'
+  case "$seen" in *"$key"*) return ;; esac
+  seen="$seen$key"
+  del_branches+=("$2")
+  del_src_repos+=("$1")
+}
+
 for dir in "$TASK_DIR"/*/; do
   [ -e "$dir/.git" ] || continue
   branch=$(git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null) || continue
   common=$(git -C "$dir" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || continue
   src_repo=$(dirname "$common")
   dirs+=("${dir%/}")
-  branches+=("$branch")
-  src_repos+=("$src_repo")
+  wt_src_repos+=("$src_repo")
+  add_branch "$src_repo" "$branch"
+  # Whole stack: every branch prefixed with the task name in this repo.
+  while IFS= read -r b; do
+    [ -n "$b" ] && add_branch "$src_repo" "$b"
+  done < <(git -C "$src_repo" for-each-ref --format='%(refname:short)' "refs/heads/$TASK_NAME/*" 2>/dev/null)
 done
 
 # 3. Remove each worktree. Run from the source repo (-C "$src"); this script's
 #    cwd is the task dir, which is not a git repo, so a bare `git worktree remove`
 #    would fail with "fatal: not a git repository".
-for i in "${!branches[@]}"; do
+for i in "${!dirs[@]}"; do
   dir="${dirs[$i]}"
-  src="${src_repos[$i]}"
+  src="${wt_src_repos[$i]}"
   if git -C "$src" worktree remove "$dir" 2>/dev/null \
      || git -C "$src" worktree remove --force "$dir"; then
     echo "Removed worktree: $(basename "$dir")"
@@ -88,9 +108,9 @@ echo "Removed task directory: $TASK_DIR"
 #    caller via PR status (see the task-clean skill).
 deleted=""
 kept=""
-for i in "${!branches[@]}"; do
-  branch="${branches[$i]}"
-  src_repo="${src_repos[$i]}"
+for i in "${!del_branches[@]}"; do
+  branch="${del_branches[$i]}"
+  src_repo="${del_src_repos[$i]}"
 
   if git -C "$src_repo" branch -d "$branch" >/dev/null 2>&1; then
     deleted="$deleted $branch"

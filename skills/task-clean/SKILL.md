@@ -36,15 +36,16 @@ Task to clean: $ARGUMENTS
    ```
    If there are real uncommitted changes, warn the user and ask for confirmation before proceeding. Pass `--force` to the cleanup script (step 5) only after the user confirms. (The list is overridable via the `TASK_CLEAN_IGNORE` env var — space-separated basenames/globs.)
 
-4. **Assess each branch's merge status — before running the cleanup script.** GitHub's PR merge state is the authoritative signal (it knows about squash *and* rebase merges, which local history can't show). Query it so you have the branch→repo mapping and a full picture up front.
+4. **Assess each branch's merge status — before running the cleanup script.** GitHub's PR merge state is the authoritative signal (it knows about squash *and* rebase merges, which local history can't show). Query it so you have the branch→repo mapping and a full picture up front. Enumerate **all** task branches per repo (`refs/heads/<task-name>/*`), not just each worktree's tip — a stacked-PR task has multiple branches in one repo and only the tip is checked out:
    ```bash
    for dir in <workspace>/tasks/<task-name>/*/; do
      [ -e "$dir/.git" ] || continue
-     branch=$(git -C "$dir" rev-parse --abbrev-ref HEAD)
      repo=$(dirname "$(git -C "$dir" rev-parse --path-format=absolute --git-common-dir)")
-     echo "=== $(basename "$dir") | $branch ==="
-     gh -R "$(git -C "$repo" remote get-url origin)" pr list \
-       --head "$branch" --state all --json number,state,mergedAt,title
+     origin=$(git -C "$repo" remote get-url origin)
+     for branch in $(git -C "$repo" for-each-ref --format='%(refname:short)' "refs/heads/<task-name>/*"); do
+       echo "=== $(basename "$repo") | $branch ==="
+       gh -R "$origin" pr list --head "$branch" --state all --json number,state,mergedAt,title
+     done
    done
    ```
    (`gh -R` accepts the origin URL directly, so there's no need to parse out `owner/repo`.) Classify each branch:
@@ -57,6 +58,7 @@ Task to clean: $ARGUMENTS
    ${CLAUDE_PLUGIN_ROOT}/scripts/task-clean.sh "<workspace>" "<task-name>" [--force]
    ```
    - Aborts if any worktree has uncommitted changes unless `--force` is passed — so the step 3 check is your safety gate.
+   - It discovers every task branch per repo via the `refs/heads/<task-name>/*` prefix (so the whole stack of a stacked-PR task is covered, not just each worktree's tip). Branches created inside a worktree with a name that doesn't follow the `<task-name>/` prefix are the exception — they can't be attributed to the task and won't be found; delete those by hand.
    - For branch deletion it only runs `git branch -d`, which catches fast-forward / merge-commit merges. It does **not** attempt to detect squash or rebase merges — those aren't visible in local history (a squash replaces the branch's commits with one new commit on the default branch, so the originals are never ancestors of origin). Any branch it can't confirm this way is reported as kept and resolved by PR status in step 6.
 
 6. **Delete remaining merged branches.** For each branch you classified `MERGED` in step 4 that the script reports as kept (e.g. a rebase merge, or one the patch-id heuristic missed), delete it now that its worktree is gone:
