@@ -1,13 +1,18 @@
 #!/bin/bash
-# Creates a task directory with all necessary config and launches an agent in tmux.
-# Usage: task-setup.sh [--agent claude|codex] <workspace> <task-name> [prompt-text]
+# Creates a task directory with all necessary config and launches the selected
+# agent in tmux — directly by default, or inside Neovim (sidecar.nvim) with --nvim.
+# Usage: task-setup.sh [--agent claude|codex] [--nvim] <workspace> <task-name> [prompt-text]
 set -euo pipefail
 
 AGENT="claude"
-if [ "${1:-}" = "--agent" ]; then
-  AGENT="${2:-}"
-  shift 2
-fi
+USE_NVIM=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --agent) AGENT="${2:-}"; shift 2 ;;
+    --nvim)  USE_NVIM=1; shift ;;
+    *) break ;;
+  esac
+done
 case "$AGENT" in
   claude|codex) ;;
   *) echo "ERROR: unknown agent '$AGENT' (expected claude or codex)" >&2; exit 1 ;;
@@ -119,29 +124,36 @@ else
   fi
 fi
 
-# 6. Launch in tmux or print instructions
-if [ "$AGENT" = "claude" ]; then
-  RUN="claude"
+# 6. Build the launch command: the agent directly (default), or inside Neovim
+#    via sidecar.nvim when --nvim is passed. Direct codex launches pass
+#    --sandbox workspace-write explicitly; under --nvim, sidecar's codex tool
+#    config must include the same flag to keep repos/ read-only.
+if [ "$USE_NVIM" = 1 ]; then
+  RUN="nvim -c 'Sidecar $AGENT'"
+  if [ -n "$PROMPT" ]; then
+    RUN="$RUN -c 'SidecarPromptFile! prompt.md'"
+  fi
+  LAUNCHED="Neovim with $AGENT"
 else
-  RUN="codex --sandbox workspace-write"
+  if [ "$AGENT" = "claude" ]; then
+    RUN="claude"
+  else
+    RUN="codex --sandbox workspace-write"
+  fi
+  if [ -n "$PROMPT" ]; then
+    RUN="$RUN \"\$(cat prompt.md)\""
+  fi
+  LAUNCHED="$AGENT"
 fi
 
 if [ -n "${TMUX:-}" ]; then
   tmux new-window -d -n "$TASK_NAME" -c "$TASK_DIR"
   tmux set-window-option -t "$TASK_NAME" automatic-rename off
-  if [ -n "$PROMPT" ]; then
-    tmux send-keys -t "$TASK_NAME" "$RUN \"\$(cat prompt.md)\"" Enter
-  else
-    tmux send-keys -t "$TASK_NAME" "$RUN" Enter
-  fi
-  echo "Launched $AGENT in background tmux window: $TASK_NAME"
+  tmux send-keys -t "$TASK_NAME" "$RUN" Enter
+  echo "Launched $LAUNCHED in background tmux window: $TASK_NAME"
 else
   echo "Task directory created: $TASK_DIR"
   echo "Run:"
   echo "  cd $TASK_DIR"
-  if [ -n "$PROMPT" ]; then
-    echo "  $RUN \"\$(cat prompt.md)\""
-  else
-    echo "  $RUN"
-  fi
+  echo "  $RUN"
 fi

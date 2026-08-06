@@ -1,13 +1,14 @@
 ---
 name: worktree-add
-description: Manually add one source repository as a Git worktree in the current multi-repo workspace task directory, primarily to make the repository available locally for convenient reading and optionally later editing. Use only when the user explicitly invokes `/worktree-add` and names a repository.
-disable-model-invocation: true
+description: Manually add one source repository as a Git worktree in the current multi-repo workspace task directory, primarily to make the repository available locally for convenient reading and optionally later editing. Use only when the user explicitly invokes `/worktree-add` and names a repository — never invoke this on your own initiative.
 allowed-tools: Bash, Glob
 ---
 
 Add one repository worktree to the current task directory.
 
 Arguments: $ARGUMENTS
+
+> **Codex compatibility**: `${CLAUDE_PLUGIN_ROOT}` is Claude Code's plugin-root variable — under Codex, substitute this plugin's root directory (two levels above this SKILL.md). Steps that say to run with `dangerouslyDisableSandbox: true` mean, under Codex, running the command with escalated permissions (approve the sandbox escalation).
 
 ## Steps
 

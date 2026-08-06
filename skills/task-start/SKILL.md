@@ -1,7 +1,6 @@
 ---
 name: task-start
-description: Start a new task in the multi-repo workspace. Creates a task directory, writes the prompt, and launches an agent (Claude Code or Codex) in a tmux window.
-disable-model-invocation: true
+description: Start a new task in the multi-repo workspace. Creates a task directory, writes the prompt, and launches an agent in a tmux window (directly by default, or inside Neovim with --nvim). Use only when the user explicitly invokes `/task-start` — never invoke this on your own initiative.
 allowed-tools: Read, Write, Bash, Glob, Grep
 ---
 
@@ -9,15 +8,21 @@ Start a new task in the multi-repo workspace.
 
 Task: $ARGUMENTS
 
+> **Codex compatibility**: `${CLAUDE_PLUGIN_ROOT}` is Claude Code's plugin-root variable — under Codex, substitute this plugin's root directory (two levels above this SKILL.md). Steps that say to run with `dangerouslyDisableSandbox: true` mean, under Codex, running the command with escalated permissions (approve the sandbox escalation).
+
 ## Steps
 
 1. **Find workspace root** by locating the `.workspace` marker in the current directory or ancestors. If not found, tell the user to run `/workspace-init` first.
 
-2. **Pick the agent.** Default is Claude Code. If the description contains a `--codex` flag, use Codex instead — strip the flag from the text before generating the task name and prompt, and pass `--agent codex` to the setup script.
+2. **Pick the agent and launch mode.** Default is Claude Code, launched directly. Strip any flags from the text before generating the task name and prompt:
+   - `--codex`: use Codex instead — pass `--agent codex` to the setup script. A `--claude` flag is also accepted but is redundant with the default.
+   - `--nvim`: run the agent inside Neovim via sidecar.nvim — pass `--nvim` to the setup script.
 
-3. **Generate a task name** from the natural language description:
-   - 2-4 words, kebab-case
-   - Descriptive of the goal (e.g., "fix-login-timeout", "add-retry-logic")
+3. **Generate a task name** that describes the goal:
+   - 2-4 words, kebab-case, descriptive of the goal (e.g., "fix-login-timeout", "add-retry-logic")
+   - If the description already states the goal, derive the name from it directly — no lookup needed.
+   - If the description is only an opaque reference (issue/ticket ID, URL, PR number, commit hash), resolve it to a title first using whatever tool is available — an issue-tracker MCP tool, `gh issue view` / `gh pr view`, or `git log` for a commit — and name the task from that summary. Keep the reference as a prefix for traceability, e.g. `proj-123-fix-login-timeout`.
+   - If the reference cannot be resolved with available tools, ask the user for a few words describing the goal rather than using the opaque ID as the name.
 
 4. **Run the setup script** to create the task directory, config, instructions doc, prompt file, and launch the agent:
    ```bash
@@ -25,6 +30,8 @@ Task: $ARGUMENTS
    ${CLAUDE_PLUGIN_ROOT}/scripts/task-setup.sh "<workspace>" "<task-name>" "<prompt>"
    # Codex (when --codex was passed):
    ${CLAUDE_PLUGIN_ROOT}/scripts/task-setup.sh --agent codex "<workspace>" "<task-name>" "<prompt>"
+   # Inside Neovim (when --nvim was passed; combines with --agent):
+   ${CLAUDE_PLUGIN_ROOT}/scripts/task-setup.sh --nvim "<workspace>" "<task-name>" "<prompt>"
    ```
    The script creates:
    - Task directory at `<workspace>/tasks/<task-name>/`
@@ -32,7 +39,7 @@ Task: $ARGUMENTS
    - Codex: `AGENTS.md`; the agent is launched with `--sandbox workspace-write`, which keeps `repos/` read-only and the task dir writable
    - `prompt.md` (raw user prompt, verbatim)
    - Pre-trusts the task dir (Claude: `~/.claude.json`; Codex: `~/.codex/config.toml`)
-   - Launches the agent in a new tmux window (or prints instructions if not in tmux)
+   - Launches the agent in a new tmux window with `prompt.md` (or prints the equivalent command if not in tmux). With `--nvim`, the window runs Neovim instead, selects the requested Sidecar agent, and submits `prompt.md` with `SidecarPromptFile!`
 
 5. **If already running inside the task directory**, proceed with the task:
    - Read across `<workspace>/repos/` freely to understand the problem
@@ -46,7 +53,7 @@ Task: $ARGUMENTS
 
 ## Important
 
-- Do NOT investigate or explore the codebase before creating the task. This skill's job is to set up the task directory and delegate work to the spawned agent. Go directly to creating the directory and launching the agent.
+- Do NOT investigate or explore the codebase before creating the task. This skill's job is to set up the task directory and delegate work to the spawned agent. Go directly to creating the directory and launching the agent. The only exception is the bounded reference lookup in step 3 (a single title fetch for naming — not code exploration).
 - Do NOT create worktrees upfront. Only when you first need to write to a repo.
 - Do NOT pull repos automatically. The user will ask if they want updates.
 - Reading repos/ is free and unrestricted. Use it extensively for context.

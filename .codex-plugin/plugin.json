@@ -1,0 +1,27 @@
+{
+  "name": "multi-repo-workspace",
+  "version": "0.2.0",
+  "description": "Multi-repo workspace with copy-on-write via git worktrees",
+  "author": {
+    "name": "Jaewoong Kim"
+  },
+  "repository": "https://github.com/rorhcdream/multi-repo-workspace",
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Multi-repo Workspace",
+    "shortDescription": "Manage multiple Git repos with task-scoped worktrees",
+    "longDescription": "Manage multiple Git repositories in a single workspace with copy-on-write semantics via git worktrees. Clone repos into a read-only directory, create task-scoped worktrees for changes, and enforce safe editing boundaries.",
+    "developerName": "Jaewoong Kim",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Show my workspace status",
+      "Start a task to fix a bug",
+      "Clean up a finished task"
+    ]
+  }
+}

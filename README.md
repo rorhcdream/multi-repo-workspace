@@ -26,9 +26,20 @@ Read from all your repos freely. When you need to edit, the plugin creates isola
 
 ## Installation
 
+The plugin ships dual manifests (`.claude-plugin/` and `.codex-plugin/`), so the same repo installs into either agent.
+
+### Claude Code
+
 ```bash
 claude plugin marketplace add rorhcdream/multi-repo-workspace
 claude plugin install multi-repo-workspace
+```
+
+### Codex
+
+```bash
+codex plugin marketplace add rorhcdream/multi-repo-workspace
+codex plugin add multi-repo-workspace@multi-repo-workspace
 ```
 
 ## Quick start
@@ -55,14 +66,25 @@ By default the task launches **Claude Code**. Add `--codex` to launch **Codex** 
 /task-start --codex fix authentication timeout in backend
 ```
 
-### 3. Launch the agent from the task directory
+### 3. Work in the task window
+
+Inside tmux, task-start opens a new window running the selected agent with the
+generated `prompt.md`. Outside tmux, it prints the equivalent command:
 
 ```bash
 cd tasks/fix-authentication-timeout-in-backend
-claude                          # or: codex --sandbox workspace-write
+claude "$(cat prompt.md)"   # or: codex --sandbox workspace-write "$(cat prompt.md)"
 ```
 
-The agent starts sandboxed. Read any repo under `<workspace>/repos/`, create worktrees when you need to edit.
+Add `--nvim` to run the agent inside Neovim via
+[sidecar.nvim](https://github.com/rorhcdream/sidecar.nvim) instead:
+
+```bash
+nvim -c 'Sidecar codex' -c 'SidecarPromptFile! prompt.md'
+```
+
+The agent starts sandboxed. Read any repo under `<workspace>/repos/`, and create
+worktrees only when you need to edit.
 
 ### 4. Clean up when done
 
@@ -78,7 +100,7 @@ Removes worktrees and the task directory. Warns if there are uncommitted changes
 |---|---|
 | `/workspace-init` | Initialize a new multi-repo workspace with categories and repo clones |
 | `/workspace` | Show workspace status — repos, active tasks, worktree info |
-| `/task-start [--codex] <description>` | Create a new task directory with isolated worktrees (add `--codex` to launch Codex instead of Claude Code) |
+| `/task-start [--codex] [--nvim] <description>` | Create a new task directory and launch the agent (default Claude Code; `--codex` for Codex, `--nvim` to run it inside Neovim via sidecar.nvim) |
 | `/worktree-add <repo>` | Manually add one repo to the current task, including for convenient local reading |
 | `/task-clean <task-name>` | Clean up a completed task's worktrees and directory |
 
@@ -92,8 +114,9 @@ Removes worktrees and the task directory. Warns if there are uncommitted changes
 
 - Git 2.17+ (worktree support)
 - `jq` and `realpath` (used by the hook script)
+- Optional: for `--nvim` tasks, Neovim >= 0.10 with [sidecar.nvim](https://github.com/rorhcdream/sidecar.nvim); configure Lazy to expose `Sidecar` and `SidecarPromptFile` through its `cmd` option so `nvim -c` can load them during startup, and include `--sandbox workspace-write` in sidecar's codex tool `cmd` so `repos/` stays read-only
 - Optional: `tmux` (task-start renames the tmux window)
-- For `--codex` tasks: the [Codex CLI](https://developers.openai.com/codex/cli) on your `PATH`
+- Claude Code on your `PATH`, or the [Codex CLI](https://developers.openai.com/codex/cli) when using `--codex`
 
 ## License
 

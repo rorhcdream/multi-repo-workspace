@@ -64,13 +64,15 @@ Arguments: $ARGUMENTS
    - Use `/task-clean` to clean up completed tasks.
 
    ## Usage
-   After `/task-start`, launch Claude Code from the task directory:
+   `/task-start` launches the selected agent in a new tmux window (add `--nvim`
+   to run it inside Neovim via sidecar.nvim). Outside tmux, run the command
+   printed by the setup script:
    ```
    cd <workspace>/tasks/<task-name>
-   claude
+   claude "$(cat prompt.md)"
    ```
-   The sandbox automatically restricts Bash writes to the task directory.
-   The PreToolUse hook blocks Edit/Write to repos/ as an additional safety net.
+   Codex is launched with `--sandbox workspace-write`, keeping repos/ read-only.
+   Claude uses its sandbox plus the PreToolUse hook that blocks Edit/Write to repos/.
 
    ## Rules
    - repos/ is read-only. To modify a repo, create a worktree under tasks/.

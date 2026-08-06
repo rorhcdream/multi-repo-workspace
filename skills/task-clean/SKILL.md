@@ -8,6 +8,8 @@ Clean up a completed task in the multi-repo workspace.
 
 Task to clean: $ARGUMENTS
 
+> **Codex compatibility**: `${CLAUDE_PLUGIN_ROOT}` is Claude Code's plugin-root variable — under Codex, substitute this plugin's root directory (two levels above this SKILL.md). Steps that say to run with `dangerouslyDisableSandbox: true` mean, under Codex, running the command with escalated permissions (approve the sandbox escalation).
+
 ## Steps
 
 1. **Find workspace root** by locating the `.workspace` marker.
