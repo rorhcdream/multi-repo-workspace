@@ -1,15 +1,27 @@
 #!/bin/bash
 # Creates a task directory with all necessary config and launches the selected
 # agent in tmux — directly by default, or inside Neovim (sidecar.nvim) with --nvim.
-# Usage: task-setup.sh [--agent claude|codex] [--nvim] <workspace> <task-name> [prompt-text]
+# Usage: task-setup.sh [--agent claude|codex] [--nvim|--no-nvim] <workspace> <task-name> [prompt-text]
+#
+# Defaults come from the environment, so a machine can opt in once instead of
+# passing a flag every time. Flags always win over the environment:
+#   MRW_AGENT=claude|codex   default agent
+#   MRW_NVIM=1               launch inside Neovim (sidecar.nvim) by default
 set -euo pipefail
 
-AGENT="claude"
-USE_NVIM=0
+AGENT="${MRW_AGENT:-claude}"
+case "${MRW_NVIM:-0}" in
+  1|true|yes|on) USE_NVIM=1 ;;
+  *)             USE_NVIM=0 ;;
+esac
+
 while [ $# -gt 0 ]; do
   case "$1" in
-    --agent) AGENT="${2:-}"; shift 2 ;;
-    --nvim)  USE_NVIM=1; shift ;;
+    --agent)    AGENT="${2:-}"; shift 2 ;;
+    --claude)   AGENT="claude"; shift ;;
+    --codex)    AGENT="codex"; shift ;;
+    --nvim)     USE_NVIM=1; shift ;;
+    --no-nvim)  USE_NVIM=0; shift ;;
     *) break ;;
   esac
 done

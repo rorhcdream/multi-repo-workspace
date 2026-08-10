@@ -86,6 +86,19 @@ nvim -c 'Sidecar codex' -c 'SidecarPromptFile! prompt.md'
 The agent starts sandboxed. Read any repo under `<workspace>/repos/`, and create
 worktrees only when you need to edit.
 
+### Defaults
+
+Both choices default from the environment, so you can set them once per machine
+instead of passing a flag every time. Export these from your shell profile:
+
+| Variable | Effect |
+|---|---|
+| `MRW_AGENT` | `claude` (default) or `codex` — which agent `/task-start` launches |
+| `MRW_NVIM` | `1` to launch inside Neovim via sidecar.nvim by default |
+
+Flags always win over the environment, so `--claude` / `--codex` and `--nvim` /
+`--no-nvim` override whatever the environment sets.
+
 ### 4. Clean up when done
 
 ```
@@ -100,7 +113,7 @@ Removes worktrees and the task directory. Warns if there are uncommitted changes
 |---|---|
 | `/workspace-init` | Initialize a new multi-repo workspace with categories and repo clones |
 | `/workspace` | Show workspace status — repos, active tasks, worktree info |
-| `/task-start [--codex] [--nvim] <description>` | Create a new task directory and launch the agent (default Claude Code; `--codex` for Codex, `--nvim` to run it inside Neovim via sidecar.nvim) |
+| `/task-start [--claude\|--codex] [--nvim\|--no-nvim] <description>` | Create a new task directory and launch the agent (defaults from `MRW_AGENT` / `MRW_NVIM`; see [Defaults](#defaults)) |
 | `/worktree-add <repo>` | Manually add one repo to the current task, including for convenient local reading |
 | `/task-clean <task-name>` | Clean up a completed task's worktrees and directory |
 

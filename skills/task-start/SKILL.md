@@ -14,9 +14,10 @@ Task: $ARGUMENTS
 
 1. **Find workspace root** by locating the `.workspace` marker in the current directory or ancestors. If not found, tell the user to run `/workspace-init` first.
 
-2. **Pick the agent and launch mode.** Default is Claude Code, launched directly. Strip any flags from the text before generating the task name and prompt:
-   - `--codex`: use Codex instead — pass `--agent codex` to the setup script. A `--claude` flag is also accepted but is redundant with the default.
-   - `--nvim`: run the agent inside Neovim via sidecar.nvim — pass `--nvim` to the setup script.
+2. **Pick the agent and launch mode.** Both default from the environment (`MRW_AGENT`, `MRW_NVIM`) — do NOT read or second-guess those variables, just forward the flags the user passed and let the script apply its own defaults. Strip any flags from the text before generating the task name and prompt:
+   - `--claude` / `--codex`: pass the same flag through to the setup script.
+   - `--nvim` / `--no-nvim`: pass the same flag through to the setup script.
+   - No flag: pass none, so the environment default applies.
 
 3. **Generate a task name** that describes the goal:
    - 2-4 words, kebab-case, descriptive of the goal (e.g., "fix-login-timeout", "add-retry-logic")
@@ -26,12 +27,10 @@ Task: $ARGUMENTS
 
 4. **Run the setup script** to create the task directory, config, instructions doc, prompt file, and launch the agent:
    ```bash
-   # Claude (default):
+   # No flags — environment defaults apply:
    ${CLAUDE_PLUGIN_ROOT}/scripts/task-setup.sh "<workspace>" "<task-name>" "<prompt>"
-   # Codex (when --codex was passed):
-   ${CLAUDE_PLUGIN_ROOT}/scripts/task-setup.sh --agent codex "<workspace>" "<task-name>" "<prompt>"
-   # Inside Neovim (when --nvim was passed; combines with --agent):
-   ${CLAUDE_PLUGIN_ROOT}/scripts/task-setup.sh --nvim "<workspace>" "<task-name>" "<prompt>"
+   # With flags — any combination, forwarded verbatim from the user's request:
+   ${CLAUDE_PLUGIN_ROOT}/scripts/task-setup.sh --claude --no-nvim "<workspace>" "<task-name>" "<prompt>"
    ```
    The script creates:
    - Task directory at `<workspace>/tasks/<task-name>/`
@@ -39,7 +38,7 @@ Task: $ARGUMENTS
    - Codex: `AGENTS.md`; the agent is launched with `--sandbox workspace-write`, which keeps `repos/` read-only and the task dir writable
    - `prompt.md` (raw user prompt, verbatim)
    - Pre-trusts the task dir (Claude: `~/.claude.json`; Codex: `~/.codex/config.toml`)
-   - Launches the agent in a new tmux window with `prompt.md` (or prints the equivalent command if not in tmux). With `--nvim`, the window runs Neovim instead, selects the requested Sidecar agent, and submits `prompt.md` with `SidecarPromptFile!`
+   - Launches the agent in a new tmux window with `prompt.md` (or prints the equivalent command if not in tmux). In Neovim mode, the window runs Neovim instead, selects the requested Sidecar agent, and submits `prompt.md` with `SidecarPromptFile!`
 
 5. **If already running inside the task directory**, proceed with the task:
    - Read across `<workspace>/repos/` freely to understand the problem
