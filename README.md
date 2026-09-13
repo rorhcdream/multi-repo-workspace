@@ -59,6 +59,8 @@ Provide category names (e.g., `org`, `public`, `personal`) and source directorie
 ```
 
 Creates `tasks/fix-authentication-timeout-in-backend/` configured with read access to `repos/`.
+The setup workflow runs in a background subagent, so the main session can accept
+another command immediately. Completion or blockers are reported asynchronously.
 
 By default the task launches **Claude Code**. Add `--codex` to launch **Codex** instead:
 
@@ -80,8 +82,12 @@ Add `--nvim` to run the agent inside Neovim via
 [sidecar.nvim](https://github.com/rorhcdream/sidecar.nvim) instead:
 
 ```bash
-nvim -c 'Sidecar codex' -c 'SidecarPromptFile! prompt.md'
+nvim -c 'Sidecar codex' \
+  -c "lua vim.defer_fn(function() vim.cmd('SidecarPromptFile! prompt.md') end, 2000)"
 ```
+
+The prompt submission is deferred for two seconds so the selected Sidecar agent
+can initialize while Neovim finishes starting.
 
 The agent starts sandboxed. Read any repo under `<workspace>/repos/`, and create
 worktrees only when you need to edit.
@@ -105,7 +111,10 @@ Flags always win over the environment, so `--claude` / `--codex` and `--nvim` /
 /task-clean fix-authentication-timeout-in-backend
 ```
 
-Removes worktrees and the task directory. Warns if there are uncommitted changes.
+Runs cleanup in a background subagent, removes worktrees and the task directory,
+and reports back asynchronously. Cleanup stops for confirmation if there are
+uncommitted changes, while generated `tmp/pr-draft.md` and `tmp/pr-stack-*.md`
+review drafts are discarded with the task without prompting.
 
 ## Skills
 
@@ -113,9 +122,9 @@ Removes worktrees and the task directory. Warns if there are uncommitted changes
 |---|---|
 | `/workspace-init` | Initialize a new multi-repo workspace with categories and repo clones |
 | `/workspace` | Show workspace status — repos, active tasks, worktree info |
-| `/task-start [--claude\|--codex] [--nvim\|--no-nvim] <description>` | Create a new task directory and launch the agent (defaults from `MRW_AGENT` / `MRW_NVIM`; see [Defaults](#defaults)) |
-| `/worktree-add <repo>` | Manually add one repo to the current task, including for convenient local reading |
-| `/task-clean <task-name>` | Clean up a completed task's worktrees and directory |
+| `/task-start [--claude\|--codex] [--nvim\|--no-nvim] <description>` | Create a new task and launch its agent through a background worker (defaults from `MRW_AGENT` / `MRW_NVIM`) |
+| `/worktree-add <repo> [<repo> ...]` | Manually add one or more repos to the current task, including for convenient local reading |
+| `/task-clean <task-name>` | Clean up a completed task asynchronously through a background worker |
 
 ## Safety
 

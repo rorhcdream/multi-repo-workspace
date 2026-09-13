@@ -1,6 +1,6 @@
 {
   "name": "multi-repo-workspace",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Multi-repo workspace with copy-on-write via git worktrees",
   "author": {
     "name": "Jaewoong Kim"
