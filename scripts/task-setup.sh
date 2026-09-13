@@ -143,7 +143,10 @@ fi
 if [ "$USE_NVIM" = 1 ]; then
   RUN="nvim -c 'Sidecar $AGENT'"
   if [ -n "$PROMPT" ]; then
-    RUN="$RUN -c 'SidecarPromptFile! prompt.md'"
+    # Let the selected agent initialize before asking Sidecar to submit the
+    # generated prompt. vim.defer_fn is non-blocking, so Neovim can finish
+    # startup while the two-second delay elapses.
+    RUN="$RUN -c \"lua vim.defer_fn(function() vim.cmd('SidecarPromptFile! prompt.md') end, 2000)\""
   fi
   LAUNCHED="Neovim with $AGENT"
 else

@@ -1,7 +1,7 @@
 ---
 name: task-start
-description: Start a new task in the multi-repo workspace. Creates a task directory, writes the prompt, and launches an agent in a tmux window (directly by default, or inside Neovim with --nvim). Use only when the user explicitly invokes `/task-start` — never invoke this on your own initiative.
-allowed-tools: Read, Write, Bash, Glob, Grep
+description: Start a new task in the multi-repo workspace through a background worker. Creates a task directory, writes the prompt, and launches an agent in a tmux window (directly by default, or inside Neovim with --nvim). Use only when the user explicitly invokes `/task-start` — never invoke this on your own initiative.
+allowed-tools: Read, Write, Bash, Glob, Grep, Agent
 ---
 
 Start a new task in the multi-repo workspace.
@@ -9,6 +9,18 @@ Start a new task in the multi-repo workspace.
 Task: $ARGUMENTS
 
 > **Codex compatibility**: `${CLAUDE_PLUGIN_ROOT}` is Claude Code's plugin-root variable — under Codex, substitute this plugin's root directory (two levels above this SKILL.md). Steps that say to run with `dangerouslyDisableSandbox: true` mean, under Codex, running the command with escalated permissions (approve the sandbox escalation).
+
+## Background dispatch
+
+Unless the invocation identifies you as the **task-start background worker**, do not execute the setup steps in the foreground.
+
+1. Launch exactly one general-purpose subagent in the background. Under Claude Code, use the `Agent` tool with `run_in_background: true`. Under Codex, use the available subagent spawning capability and leave it running without waiting or polling.
+2. Give it the original `$ARGUMENTS`, the current working directory, and this instruction: `You are the task-start background worker. Execute the task-start skill steps directly. Do not delegate or spawn another worker. Report completion or a blocker when finished.`
+3. Tell the user that task creation was dispatched, then end the foreground turn immediately so another command can be issued.
+
+If background subagents are unavailable, report that limitation and stop. Do not silently run the workflow in the foreground.
+
+If you are the marked task-start background worker, skip this section and execute the steps below directly.
 
 ## Steps
 
@@ -38,7 +50,7 @@ Task: $ARGUMENTS
    - Codex: `AGENTS.md`; the agent is launched with `--sandbox workspace-write`, which keeps `repos/` read-only and the task dir writable
    - `prompt.md` (raw user prompt, verbatim)
    - Pre-trusts the task dir (Claude: `~/.claude.json`; Codex: `~/.codex/config.toml`)
-   - Launches the agent in a new tmux window with `prompt.md` (or prints the equivalent command if not in tmux). In Neovim mode, the window runs Neovim instead, selects the requested Sidecar agent, and submits `prompt.md` with `SidecarPromptFile!`
+   - Launches the agent in a new tmux window with `prompt.md` (or prints the equivalent command if not in tmux). In Neovim mode, the window runs Neovim, selects the requested Sidecar agent, then submits `prompt.md` with `SidecarPromptFile!` from a non-blocking callback after a two-second initialization delay.
 
 5. **If already running inside the task directory**, proceed with the task:
    - Read across `<workspace>/repos/` freely to understand the problem
