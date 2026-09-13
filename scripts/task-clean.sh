@@ -15,10 +15,11 @@ TASK_NAME="$2"
 FORCE="${3:-}"
 TASK_DIR="$WORKSPACE/tasks/$TASK_NAME"
 
-# Runtime/noise files that must not count as uncommitted work — otherwise they'd
-# trigger the abort below and force an unnecessary confirmation. Matched at any
-# depth. Override with TASK_CLEAN_IGNORE (space-separated basenames/globs).
-read -ra _ignore_globs <<< "${TASK_CLEAN_IGNORE:-nohup.out *.log}"
+# Generated drafts and runtime/noise files that must not count as uncommitted
+# work — otherwise they'd trigger the abort below and force an unnecessary
+# confirmation. Matched at any depth. Override with TASK_CLEAN_IGNORE
+# (space-separated basenames/globs).
+read -ra _ignore_globs <<< "${TASK_CLEAN_IGNORE:-nohup.out *.log tmp/pr-draft.md tmp/pr-stack-*.md}"
 ignore_pathspec=()
 for g in "${_ignore_globs[@]}"; do
   ignore_pathspec+=(":(exclude)*$g")
@@ -29,15 +30,22 @@ if [ ! -d "$TASK_DIR" ]; then
   exit 1
 fi
 
+# Worktrees are usually <task>/<repo>, but can be nested (e.g. <task>/rollback/<repo>),
+# so find them at any depth instead of globbing one level. -prune stops the descent
+# once a worktree is found, so nothing inside one is taken for a separate worktree.
+find_worktrees() {
+  find "$TASK_DIR" -mindepth 1 -type d -exec test -e '{}/.git' \; -print -prune
+}
+
 # 1. Pre-flight: check for uncommitted changes in any worktree (ignoring noise).
 dirty=""
-for dir in "$TASK_DIR"/*/; do
-  [ -e "$dir/.git" ] || continue
+while IFS= read -r dir; do
+  [ -n "$dir" ] || continue
   status=$(git -C "$dir" status --porcelain -- . "${ignore_pathspec[@]}")
   if [ -n "$status" ]; then
-    dirty="$dirty\n=== $(basename "$dir") ===\n$status"
+    dirty="$dirty\n=== ${dir#$TASK_DIR/} ===\n$status"
   fi
-done
+done < <(find_worktrees)
 
 if [ -n "$dirty" ] && [ "$FORCE" != "--force" ]; then
   echo "Uncommitted changes found — aborting. Re-run with --force to clean anyway:" >&2
@@ -47,8 +55,8 @@ fi
 
 # 2. Gather worktrees to remove and every task branch to clean up.
 #    Each worktree gives its checked-out tip branch; a stacked-PR task also has
-#    extra branches in the same repo (refs/heads/<task-name>/*) that no worktree
-#    has checked out. Collect both, deduped.
+#    extra branches in the same repo (under refs/heads/<task-name>/) that no
+#    worktree has checked out. Collect both, deduped.
 declare -a dirs=()          # worktree paths to remove
 declare -a wt_src_repos=()  # source repo per worktree (parallel to dirs)
 declare -a del_branches=()  # every task branch to consider deleting
@@ -65,19 +73,22 @@ add_branch() {  # $1=src_repo  $2=branch
   del_src_repos+=("$1")
 }
 
-for dir in "$TASK_DIR"/*/; do
-  [ -e "$dir/.git" ] || continue
+while IFS= read -r dir; do
+  [ -n "$dir" ] || continue
   branch=$(git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null) || continue
   common=$(git -C "$dir" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || continue
   src_repo=$(dirname "$common")
   dirs+=("${dir%/}")
   wt_src_repos+=("$src_repo")
   add_branch "$src_repo" "$branch"
-  # Whole stack: every branch prefixed with the task name in this repo.
+  # Whole stack: every branch under the task-name prefix in this repo. The
+  # pattern has no wildcard on purpose — for-each-ref treats it as a literal
+  # prefix and matches nested refs, whereas fnmatch's '*' won't cross a '/'
+  # and would miss <task>/rollback/<branch>.
   while IFS= read -r b; do
     [ -n "$b" ] && add_branch "$src_repo" "$b"
-  done < <(git -C "$src_repo" for-each-ref --format='%(refname:short)' "refs/heads/$TASK_NAME/*" 2>/dev/null)
-done
+  done < <(git -C "$src_repo" for-each-ref --format='%(refname:short)' "refs/heads/$TASK_NAME/" 2>/dev/null)
+done < <(find_worktrees)
 
 # 3. Remove each worktree. Run from the source repo (-C "$src"); this script's
 #    cwd is the task dir, which is not a git repo, so a bare `git worktree remove`
@@ -87,7 +98,7 @@ for i in "${!dirs[@]}"; do
   src="${wt_src_repos[$i]}"
   if git -C "$src" worktree remove "$dir" 2>/dev/null \
      || git -C "$src" worktree remove --force "$dir"; then
-    echo "Removed worktree: $(basename "$dir")"
+    echo "Removed worktree: ${dir#$TASK_DIR/}"
   else
     echo "WARNING: could not remove worktree $dir (will rm + prune)" >&2
   fi
