@@ -56,6 +56,22 @@ If you are the marked task-clean background worker, skip this section and execut
    ```
    Delete the generated PR drafts with the task without asking about them. If there are other uncommitted changes, warn the user and ask for confirmation before proceeding. Pass `--force` to the cleanup script (step 5) only after the user confirms. (`TASK_CLEAN_IGNORE` — space-separated basenames/globs — widens what counts as disposable noise, but it is only for genuine generated or runtime files. Using it to slip a real change past the abort gate is `--force` by another name and needs the same explicit confirmation.)
 
+   **Check standalone deliverables only when the task has no git worktree.** If the worktree discovery in step 3 finds any worktree, skip this check; keep the existing worktree checks unchanged. Otherwise, list the task contents and recursively identify files beyond the standard scaffolding:
+   ```bash
+   task_dir="<workspace>/tasks/<task-name>"
+   ls -la "$task_dir"
+   find "$task_dir" -mindepth 1 \
+     \( -path "$task_dir/.claude" -prune \) -o \
+     \( \( -type f -o -type l \) \
+       ! -path "$task_dir/AGENTS.md" \
+       ! -path "$task_dir/CLAUDE.md" \
+       ! -path "$task_dir/prompt.md" \
+       ! -path "$task_dir/.nvimlog" -print \)
+   ```
+   `scripts/task-setup.sh` is authoritative for generated scaffolding in both Claude and Codex modes: it creates `CLAUDE.md` or `AGENTS.md`, optional `prompt.md`, and Claude's `.claude/settings.local.json`; `.claude/` and Neovim's `.nvimlog` are standard scaffolding/runtime noise. If setup changes, verify any additional exclusions against that script rather than broadly ignoring file types or directories.
+
+   Report each non-scaffolding file's path and a brief content summary (e.g. the first few lines or its length) in the cleanup report before running step 5. Treat real deliverables like the uncommitted-change blocker in step 3: stop and request the user's go-ahead before deleting them. The dispatching prompt for this specific cleanup may explicitly account for trivial/empty content or content clearly already fully relayed in the conversation and allow cleanup; always perform the check and report what was found. This is a static filesystem check only; do not inspect live agent sessions or tmux pane contents.
+
 4. **Assess each branch's merge status — before running the cleanup script.** GitHub's PR merge state is the authoritative signal (it knows about squash *and* rebase merges, which local history can't show). Query it so you have the branch→repo mapping and a full picture up front. Enumerate **all** task branches per repo (`refs/heads/<task-name>/`), not just each worktree's tip — a stacked-PR task has multiple branches in one repo and only the tip is checked out. The ref pattern deliberately has no trailing `*`: `for-each-ref` treats a wildcard-free pattern as a literal prefix and matches nested refs, whereas fnmatch's `*` will not cross a `/` and silently misses a branch like `<task-name>/rollback/<branch>`:
    ```bash
    while IFS= read -r dir; do
