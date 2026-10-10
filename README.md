@@ -101,9 +101,21 @@ instead of passing a flag every time. Export these from your shell profile:
 |---|---|
 | `MRW_AGENT` | `claude` (default) or `codex` — which agent `/task-start` launches |
 | `MRW_NVIM` | `1` to launch inside Neovim via sidecar.nvim by default |
+| `MRW_TASK_INSTRUCTIONS_FILE` | Optional readable Markdown file appended verbatim to each generated task instruction document |
 
 Flags always win over the environment, so `--claude` / `--codex` and `--nvim` /
 `--no-nvim` override whatever the environment sets.
+
+Use `MRW_TASK_INSTRUCTIONS_FILE` to layer machine- or user-specific workflows on
+top of the plugin's shared workspace rules without maintaining a private fork:
+
+```bash
+export MRW_TASK_INSTRUCTIONS_FILE="$HOME/.config/multi-repo-workspace/task-instructions.md"
+```
+
+The setup fails before creating the task directory if the configured file is
+missing or unreadable. Relative paths are resolved from the directory where
+`/task-start` runs.
 
 ### 4. Clean up when done
 

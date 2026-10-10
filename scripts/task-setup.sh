@@ -7,6 +7,8 @@
 # passing a flag every time. Flags always win over the environment:
 #   MRW_AGENT=claude|codex   default agent
 #   MRW_NVIM=1               launch inside Neovim (sidecar.nvim) by default
+#   MRW_TASK_INSTRUCTIONS_FILE=/path/to/file
+#                            append personal instructions to the task doc
 set -euo pipefail
 
 AGENT="${MRW_AGENT:-claude}"
@@ -35,6 +37,28 @@ TASK_NAME="$2"
 PROMPT="${3:-}"
 TASK_DIR="$WORKSPACE/tasks/$TASK_NAME"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+CUSTOM_INSTRUCTIONS_FILE="${MRW_TASK_INSTRUCTIONS_FILE:-}"
+CUSTOM_INSTRUCTIONS_SNAPSHOT=""
+
+cleanup() {
+  if [ -n "$CUSTOM_INSTRUCTIONS_SNAPSHOT" ]; then
+    rm -f "$CUSTOM_INSTRUCTIONS_SNAPSHOT"
+  fi
+}
+trap cleanup EXIT
+
+if [ -n "$CUSTOM_INSTRUCTIONS_FILE" ]; then
+  case "$CUSTOM_INSTRUCTIONS_FILE" in
+    /*) ;;
+    *) CUSTOM_INSTRUCTIONS_FILE="$PWD/$CUSTOM_INSTRUCTIONS_FILE" ;;
+  esac
+  if [ ! -f "$CUSTOM_INSTRUCTIONS_FILE" ] || [ ! -r "$CUSTOM_INSTRUCTIONS_FILE" ]; then
+    echo "ERROR: MRW_TASK_INSTRUCTIONS_FILE is not a readable file" >&2
+    exit 1
+  fi
+  CUSTOM_INSTRUCTIONS_SNAPSHOT="$(mktemp "${TMPDIR:-/tmp}/mrw-task-instructions.XXXXXX")"
+  cp "$CUSTOM_INSTRUCTIONS_FILE" "$CUSTOM_INSTRUCTIONS_SNAPSHOT"
+fi
 
 # 1. Create directory structure
 mkdir -p "$TASK_DIR"
@@ -104,6 +128,12 @@ cat > "$TASK_DIR/$DOC_FILE" <<CLAUDEMD
 - Do NOT edit files under \`$WORKSPACE/repos/\` — $READONLY_NOTE.
 - Do NOT create worktrees upfront. Only when you first need to write to a repo.
 CLAUDEMD
+
+if [ -n "$CUSTOM_INSTRUCTIONS_SNAPSHOT" ]; then
+  printf '\n' >> "$TASK_DIR/$DOC_FILE"
+  cat "$CUSTOM_INSTRUCTIONS_SNAPSHOT" >> "$TASK_DIR/$DOC_FILE"
+  printf '\n' >> "$TASK_DIR/$DOC_FILE"
+fi
 
 # 4. Write prompt file if provided
 if [ -n "$PROMPT" ]; then

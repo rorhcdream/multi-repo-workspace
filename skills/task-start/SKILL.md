@@ -26,7 +26,7 @@ If you are the marked task-start background worker, skip this section and execut
 
 1. **Find workspace root** by locating the `.workspace` marker in the current directory or ancestors. If not found, tell the user to run `/workspace-init` first.
 
-2. **Pick the agent and launch mode.** Both default from the environment (`MRW_AGENT`, `MRW_NVIM`) — do NOT read or second-guess those variables, just forward the flags the user passed and let the script apply its own defaults. Strip any flags from the text before generating the task name and prompt:
+2. **Pick the agent and launch mode.** Both default from the environment (`MRW_AGENT`, `MRW_NVIM`) — do NOT read or second-guess those variables, just forward the flags the user passed and let the script apply its own defaults. The script also handles the optional `MRW_TASK_INSTRUCTIONS_FILE`; do not inspect or copy that file yourself. Strip any flags from the text before generating the task name and prompt:
    - `--claude` / `--codex`: pass the same flag through to the setup script.
    - `--nvim` / `--no-nvim`: pass the same flag through to the setup script.
    - No flag: pass none, so the environment default applies.
@@ -48,6 +48,7 @@ If you are the marked task-start background worker, skip this section and execut
    - Task directory at `<workspace>/tasks/<task-name>/`
    - Claude: `.claude/settings.local.json` (sandbox config + Read permission for repos/) and `CLAUDE.md`
    - Codex: `AGENTS.md`; the agent is launched with `--sandbox workspace-write`, which keeps `repos/` read-only and the task dir writable
+   - If `MRW_TASK_INSTRUCTIONS_FILE` is set, appends that file verbatim to the generated `CLAUDE.md` or `AGENTS.md`
    - `prompt.md` (raw user prompt, verbatim)
    - Pre-trusts the task dir (Claude: `~/.claude.json`; Codex: `~/.codex/config.toml`)
    - Launches the agent in a new tmux window with `prompt.md` (or prints the equivalent command if not in tmux). In Neovim mode, the window runs Neovim, selects the requested Sidecar agent, then submits `prompt.md` with `SidecarPromptFile!` from a non-blocking callback after a two-second initialization delay.
@@ -67,5 +68,6 @@ If you are the marked task-start background worker, skip this section and execut
 - Do NOT investigate or explore the codebase before creating the task. This skill's job is to set up the task directory and delegate work to the spawned agent. Go directly to creating the directory and launching the agent. The only exception is the bounded reference lookup in step 3 (a single title fetch for naming — not code exploration).
 - Do NOT create worktrees upfront. Only when you first need to write to a repo.
 - Do NOT pull repos automatically. The user will ask if they want updates.
+- Do NOT invent or add machine-specific workflow instructions. The setup script appends the configured `MRW_TASK_INSTRUCTIONS_FILE` when present.
 - Reading repos/ is free and unrestricted. Use it extensively for context.
 - Under Claude, the Bash sandbox blocks shell writes outside the task directory and a PreToolUse hook blocks Edit/Write to repos/. Under Codex, the `workspace-write` sandbox makes everything outside the task directory (including repos/) read-only. Either way, repos/ stays read-only.
