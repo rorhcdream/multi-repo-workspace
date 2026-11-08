@@ -4,7 +4,7 @@
 #
 # Safety:
 #   - Aborts if any worktree has uncommitted changes, unless --force is passed.
-#   - Only deletes branches that are already merged (git branch -d). Unmerged
+#   - Only deletes branches confirmed landed on origin's refreshed default. Unmerged
 #     branches are kept and reported; delete them yourself with -D if intended.
 #
 # Usage: task-clean.sh <workspace> <task-name> [--force]
@@ -14,12 +14,13 @@ WORKSPACE="$1"
 TASK_NAME="$2"
 FORCE="${3:-}"
 TASK_DIR="$WORKSPACE/tasks/$TASK_NAME"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
 
 # Generated drafts and runtime/noise files that must not count as uncommitted
 # work — otherwise they'd trigger the abort below and force an unnecessary
 # confirmation. Matched at any depth. Override with TASK_CLEAN_IGNORE
 # (space-separated basenames/globs).
-read -ra _ignore_globs <<< "${TASK_CLEAN_IGNORE:-nohup.out *.log tmp/pr-draft.md tmp/pr-stack-*.md}"
+read -ra _ignore_globs <<< "${TASK_CLEAN_IGNORE:-nohup.out *.log tmp/pr-draft.md tmp/pr-body.md tmp/pr-stack-*.md}"
 ignore_pathspec=()
 for g in "${_ignore_globs[@]}"; do
   ignore_pathspec+=(":(exclude)*$g")
@@ -80,7 +81,8 @@ while IFS= read -r dir; do
   src_repo=$(dirname "$common")
   dirs+=("${dir%/}")
   wt_src_repos+=("$src_repo")
-  add_branch "$src_repo" "$branch"
+  # A detached HEAD reports the literal "HEAD", which is not a branch.
+  [ "$branch" = HEAD ] || add_branch "$src_repo" "$branch"
   # Whole stack: every branch under the task-name prefix in this repo. The
   # pattern has no wildcard on purpose — for-each-ref treats it as a literal
   # prefix and matches nested refs, whereas fnmatch's '*' won't cross a '/'
@@ -113,17 +115,15 @@ fi
 rm -rf "$TASK_DIR"
 echo "Removed task directory: $TASK_DIR"
 
-# 6. Delete merged task branches; keep (and report) the rest.
-#    git branch -d only catches fast-forward / merge-commit merges. Squash and
-#    rebase merges are not visible in local history — those are resolved by the
-#    caller via PR status (see the task-clean skill).
+# 6. Delete landed task branches; keep (and report) the rest.
 deleted=""
 kept=""
 for i in "${!del_branches[@]}"; do
   branch="${del_branches[$i]}"
   src_repo="${del_src_repos[$i]}"
 
-  if git -C "$src_repo" branch -d "$branch" >/dev/null 2>&1; then
+  state=$(bash "$SCRIPT_DIR/task-branch-status.sh" "$src_repo" "$branch")
+  if [[ "$state" = LANDED:* ]] && git -C "$src_repo" branch -D "$branch" >/dev/null 2>&1; then
     deleted="$deleted $branch"
   else
     kept="$kept $branch"
@@ -138,5 +138,5 @@ done
 
 # 8. Report.
 echo "---"
-echo "Deleted branches (merged in local history):${deleted:- none}"
-echo "Kept branches (check PR status, then delete with -D if merged):${kept:- none}"
+echo "Deleted branches (landed on origin default):${deleted:- none}"
+echo "Kept branches (check integration status before deleting):${kept:- none}"

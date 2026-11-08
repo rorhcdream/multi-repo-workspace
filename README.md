@@ -124,9 +124,16 @@ missing or unreadable. Relative paths are resolved from the directory where
 ```
 
 Runs cleanup in a background subagent, removes worktrees and the task directory,
-and reports back asynchronously. Cleanup stops for confirmation if there are
-uncommitted changes, while generated `tmp/pr-draft.md` and `tmp/pr-stack-*.md`
-review drafts are discarded with the task without prompting.
+and reports back asynchronously. When invoked inside a task, it instead delegates
+to the existing workspace-root Claude or Codex pane, like tmux-workspace-tree.
+No new window is created and focus stays unchanged; completion and blockers appear
+in the root agent session. If no root agent is found, start one or invoke cleanup
+from a separate workspace-root session. Cleanup recognizes branches landed directly
+on the freshly fetched remote default branch without requiring a PR, and uses PR
+state for squash/rebase merges. Unconfirmed branches are retained. Cleanup stops for confirmation if there are
+uncommitted changes, while task-root `plan.md`, `findings.md`, and the entire `tmp/` directory, plus generated
+`tmp/pr-draft.md` and `tmp/pr-stack-*.md` review drafts, are discarded with the task
+without prompting.
 
 ## Skills
 
