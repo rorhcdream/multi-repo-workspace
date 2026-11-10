@@ -78,6 +78,10 @@ cd tasks/fix-authentication-timeout-in-backend
 claude "$(cat prompt.md)"   # or: codex --sandbox workspace-write "$(cat prompt.md)"
 ```
 
+When useful context from the invoking conversation is forwarded, `prompt.md`
+keeps the original request verbatim, `context.md` holds the context, and the
+agent is launched with the combined `task-input.md` instead.
+
 Add `--nvim` to run the agent inside Neovim via
 [sidecar.nvim](https://github.com/rorhcdream/sidecar.nvim) instead:
 

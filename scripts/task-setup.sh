@@ -1,7 +1,7 @@
 #!/bin/bash
 # Creates a task directory with all necessary config and launches the selected
 # agent in tmux — directly by default, or inside Neovim (sidecar.nvim) with --nvim.
-# Usage: task-setup.sh [--agent claude|codex] [--nvim|--no-nvim] <workspace> <task-name> [prompt-text]
+# Usage: task-setup.sh [--agent claude|codex] [--nvim|--no-nvim] <workspace> <task-name> [prompt-text] [additional-context]
 #
 # Defaults come from the environment, so a machine can opt in once instead of
 # passing a flag every time. Flags always win over the environment:
@@ -35,6 +35,7 @@ esac
 WORKSPACE="$1"
 TASK_NAME="$2"
 PROMPT="${3:-}"
+ADDITIONAL_CONTEXT="${4:-}"
 TASK_DIR="$WORKSPACE/tasks/$TASK_NAME"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CUSTOM_INSTRUCTIONS_FILE="${MRW_TASK_INSTRUCTIONS_FILE:-}"
@@ -135,9 +136,26 @@ if [ -n "$CUSTOM_INSTRUCTIONS_SNAPSHOT" ]; then
   printf '\n' >> "$TASK_DIR/$DOC_FILE"
 fi
 
-# 4. Write prompt file if provided
+# 4. Write the original prompt verbatim. Keep optional context separate on disk,
+#    but include it in the initial message sent to the new agent.
+#    TASK_PROMPT_FILE stays empty when there is nothing to send at launch.
+TASK_PROMPT_FILE=""
 if [ -n "$PROMPT" ]; then
   printf '%s\n' "$PROMPT" > "$TASK_DIR/prompt.md"
+  TASK_PROMPT_FILE="prompt.md"
+fi
+if [ -n "$ADDITIONAL_CONTEXT" ]; then
+  printf '%s\n' "$ADDITIONAL_CONTEXT" > "$TASK_DIR/context.md"
+  {
+    if [ -n "$PROMPT" ]; then
+      printf '%s\n\n' "$PROMPT"
+      printf 'Additional context (background information; the task prompt above remains authoritative):\n'
+    else
+      printf 'Additional context (background information):\n'
+    fi
+    printf '%s\n' "$ADDITIONAL_CONTEXT"
+  } > "$TASK_DIR/task-input.md"
+  TASK_PROMPT_FILE="task-input.md"
 fi
 
 # 5. Pre-trust the task dir so the agent honors its config without an
@@ -172,11 +190,11 @@ fi
 #    config must include the same flag to keep repos/ read-only.
 if [ "$USE_NVIM" = 1 ]; then
   RUN="nvim -c 'Sidecar $AGENT'"
-  if [ -n "$PROMPT" ]; then
+  if [ -n "$TASK_PROMPT_FILE" ]; then
     # Let the selected agent initialize before asking Sidecar to submit the
     # generated prompt. vim.defer_fn is non-blocking, so Neovim can finish
     # startup while the two-second delay elapses.
-    RUN="$RUN -c \"lua vim.defer_fn(function() vim.cmd('SidecarPromptFile! prompt.md') end, 2000)\""
+    RUN="$RUN -c \"lua vim.defer_fn(function() vim.cmd('SidecarPromptFile! $TASK_PROMPT_FILE') end, 2000)\""
   fi
   LAUNCHED="Neovim with $AGENT"
 else
@@ -185,8 +203,8 @@ else
   else
     RUN="codex --sandbox workspace-write"
   fi
-  if [ -n "$PROMPT" ]; then
-    RUN="$RUN \"\$(cat prompt.md)\""
+  if [ -n "$TASK_PROMPT_FILE" ]; then
+    RUN="$RUN \"\$(cat $TASK_PROMPT_FILE)\""
   fi
   LAUNCHED="$AGENT"
 fi

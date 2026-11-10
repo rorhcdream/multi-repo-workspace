@@ -81,11 +81,13 @@ If you are the marked task-clean background worker, skip this section and execut
        ! -path "$task_dir/AGENTS.md" \
        ! -path "$task_dir/CLAUDE.md" \
        ! -path "$task_dir/prompt.md" \
+       ! -path "$task_dir/context.md" \
+       ! -path "$task_dir/task-input.md" \
        ! -path "$task_dir/plan.md" \
        ! -path "$task_dir/findings.md" \
        ! -path "$task_dir/.nvimlog" -print \)
    ```
-   `scripts/task-setup.sh` is authoritative for generated scaffolding in both Claude and Codex modes: it creates `CLAUDE.md` or `AGENTS.md`, optional `prompt.md`, and Claude's `.claude/settings.local.json`; `.claude/` and Neovim's `.nvimlog` are standard scaffolding/runtime noise. The task-root `plan.md` and `findings.md` are disposable planning/investigation artifacts: delete them with the task without asking for confirmation. These exclusions apply only to `<task>/plan.md` and `<task>/findings.md`, not files with those names inside repositories or other subdirectories. If setup changes, verify any additional exclusions against that script rather than broadly ignoring file types or directories.
+   `scripts/task-setup.sh` is authoritative for generated scaffolding in both Claude and Codex modes: it creates `CLAUDE.md` or `AGENTS.md`, optional `prompt.md`, optional `context.md` and `task-input.md`, and Claude's `.claude/settings.local.json`; `.claude/` and Neovim's `.nvimlog` are standard scaffolding/runtime noise. The task-root `plan.md` and `findings.md` are disposable planning/investigation artifacts: delete them with the task without asking for confirmation. These exclusions apply only to `<task>/plan.md` and `<task>/findings.md`, not files with those names inside repositories or other subdirectories. If setup changes, verify any additional exclusions against that script rather than broadly ignoring file types or directories.
 
    The entire task-root `<task>/tmp/` directory is disposable: skip its contents and delete it with the task without asking for confirmation. This does not exclude nested `tmp/` directories elsewhere in the task or inside repository worktrees.
 

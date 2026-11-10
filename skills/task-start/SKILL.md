@@ -15,7 +15,7 @@ Task: $ARGUMENTS
 Unless the invocation identifies you as the **task-start background worker**, do not execute the setup steps in the foreground.
 
 1. Launch exactly one general-purpose subagent in the background. Under Claude Code, use the `Agent` tool with `run_in_background: true`. Under Codex, use the available subagent spawning capability and leave it running without waiting or polling.
-2. Give it the original `$ARGUMENTS`, the current working directory, and this instruction: `You are the task-start background worker. Execute the task-start skill steps directly. Do not delegate or spawn another worker. Report completion or a blocker when finished.`
+2. Give it the original `$ARGUMENTS`, the current working directory, and this instruction: `You are the task-start background worker. Execute the task-start skill steps directly. Do not delegate or spawn another worker. Report completion or a blocker when finished.` When earlier conversation contains useful details that clarify the task, pass a concise **Additional context** block separately from the original arguments. This can include relevant clarifications, constraints, decisions, or known references. Preserve the user's prompt verbatim as the task prompt; do not replace it with a summary. Include no extra context when none is useful, and do not inspect repositories or invent context before creating the task.
 3. Tell the user that task creation was dispatched, then end the foreground turn immediately so another command can be issued.
 
 If background subagents are unavailable, report that limitation and stop. Do not silently run the workflow in the foreground.
@@ -40,18 +40,21 @@ If you are the marked task-start background worker, skip this section and execut
 4. **Run the setup script** to create the task directory, config, instructions doc, prompt file, and launch the agent:
    ```bash
    # No flags — environment defaults apply:
-   ${CLAUDE_PLUGIN_ROOT}/scripts/task-setup.sh "<workspace>" "<task-name>" "<prompt>"
+   ${CLAUDE_PLUGIN_ROOT}/scripts/task-setup.sh "<workspace>" "<task-name>" "<prompt>" ["<additional context>"]
    # With flags — any combination, forwarded verbatim from the user's request:
-   ${CLAUDE_PLUGIN_ROOT}/scripts/task-setup.sh --claude --no-nvim "<workspace>" "<task-name>" "<prompt>"
+   ${CLAUDE_PLUGIN_ROOT}/scripts/task-setup.sh --claude --no-nvim "<workspace>" "<task-name>" "<prompt>" ["<additional context>"]
    ```
+   Pass the dispatcher's **Additional context** block, if any, as the fourth argument, and omit that argument when there is none. The double quotes above are placeholders: shell-quote the prompt and context (for example, single quotes with embedded `'` escaped) so backticks, `$`, and quotes reach the script byte-for-byte.
+
    The script creates:
    - Task directory at `<workspace>/tasks/<task-name>/`
    - Claude: `.claude/settings.local.json` (sandbox config + Read permission for repos/) and `CLAUDE.md`
    - Codex: `AGENTS.md`; the agent is launched with `--sandbox workspace-write`, which keeps `repos/` read-only and the task dir writable
    - If `MRW_TASK_INSTRUCTIONS_FILE` is set, appends that file verbatim to the generated `CLAUDE.md` or `AGENTS.md`
    - `prompt.md` (raw user prompt, verbatim)
+   - If useful context was supplied, `context.md` stores it separately, and `task-input.md` combines the original prompt with a clearly labeled additional-context section for the launched agent.
    - Pre-trusts the task dir (Claude: `~/.claude.json`; Codex: `~/.codex/config.toml`)
-   - Launches the agent in a new tmux window with `prompt.md` (or prints the equivalent command if not in tmux). In Neovim mode, the window runs Neovim, selects the requested Sidecar agent, then submits `prompt.md` with `SidecarPromptFile!` from a non-blocking callback after a two-second initialization delay.
+   - Launches the agent in a new tmux window with the original prompt (and separately labeled context when supplied), or prints the equivalent command if not in tmux. In Neovim mode, the window runs Neovim, selects the requested Sidecar agent, then submits the appropriate prompt file with `SidecarPromptFile!` from a non-blocking callback after a two-second initialization delay.
 
 5. **If already running inside the task directory**, proceed with the task:
    - Read across `<workspace>/repos/` freely to understand the problem
@@ -65,7 +68,7 @@ If you are the marked task-start background worker, skip this section and execut
 
 ## Important
 
-- Do NOT investigate or explore the codebase before creating the task. This skill's job is to set up the task directory and delegate work to the spawned agent. Go directly to creating the directory and launching the agent. The only exception is the bounded reference lookup in step 3 (a single title fetch for naming — not code exploration).
+- Do NOT investigate or explore the codebase before creating the task. This skill's job is to set up the task directory and delegate work to the spawned agent. Go directly to creating the directory and launching the agent. Previously supplied conversation context may be forwarded separately when it materially clarifies the task; do not explore the codebase to manufacture context. The only exception is the bounded reference lookup in step 3 (a single title fetch for naming — not code exploration).
 - Do NOT create worktrees upfront. Only when you first need to write to a repo.
 - Do NOT pull repos automatically. The user will ask if they want updates.
 - Do NOT invent or add machine-specific workflow instructions. The setup script appends the configured `MRW_TASK_INSTRUCTIONS_FILE` when present.
