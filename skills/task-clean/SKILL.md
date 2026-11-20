@@ -51,32 +51,33 @@ If you are the marked task-clean background worker, skip this section and execut
      ls <workspace>/tasks/
      ```
 
-3. **Check for uncommitted changes** in each worktree before removing. Ignore generated PR drafts (`tmp/pr-draft.md`, `tmp/pr-body.md`, `tmp/pr-stack-*.md`) and runtime noise (`nohup.out`, `*.log`) so they don't trigger a needless prompt — mirror the cleanup script, which excludes the same paths. Do not ignore an entire `tmp/` directory inside a worktree; other files there may be real work. The task-root `<task>/tmp/` exclusion below does not apply inside worktrees:
+3. **Check for uncommitted changes** in each worktree before removing. All `tmp/` directories and their contents are disposable, at any depth in the task or its worktrees. Ignore them along with runtime noise (`nohup.out`, `*.log`) so they don't trigger a needless prompt — mirror the cleanup script, which excludes the same paths:
    ```bash
    while IFS= read -r dir; do
      [ -n "$dir" ] || continue
+     case "/${dir#<workspace>/tasks/<task-name>/}/" in
+       */tmp/*) continue ;;
+     esac
      echo "=== ${dir#*/tasks/<task-name>/} ==="
      git -C "$dir" status --short -- . \
        ':(exclude)*nohup.out' \
        ':(exclude)*.log' \
-       ':(exclude)*tmp/pr-draft.md' \
-       ':(exclude)*tmp/pr-body.md' \
-       ':(exclude)*tmp/pr-stack-*.md'
+       ':(glob,exclude)**/tmp/**'
    done < <(
      find "<workspace>/tasks/<task-name>" -mindepth 1 -type d \
        -exec test -e '{}/.git' \; -print -prune
    )
    ```
-   A worktree on a detached HEAD is also unsaved work if its commit is on no branch (`git -C "$dir" branch --contains HEAD` prints only `(no branch)`): removing the worktree drops that commit. Report such a commit and its SHA, and treat it like an uncommitted change that needs the user's confirmation.
+   Worktrees located inside a disposable `tmp/` directory are skipped by this uncommitted-change check; still assess their branches in step 4. Outside those directories, a worktree on a detached HEAD is also unsaved work if its commit is on no branch (`git -C "$dir" branch --contains HEAD` prints only `(no branch)`): removing the worktree drops that commit. Report such a commit and its SHA, and treat it like an uncommitted change that needs the user's confirmation.
 
-   Delete the generated PR drafts with the task without asking about them. If there are other uncommitted changes, warn the user and ask for confirmation before proceeding. Pass `--force` to the cleanup script (step 5) only after the user confirms. (`TASK_CLEAN_IGNORE` — space-separated basenames/globs — widens what counts as disposable noise, but it is only for genuine generated or runtime files. Using it to slip a real change past the abort gate is `--force` by another name and needs the same explicit confirmation.)
+   Delete all `tmp/` contents with the task without asking about them. If there are other uncommitted changes, warn the user and ask for confirmation before proceeding. Pass `--force` to the cleanup script (step 5) only after the user confirms. (`TASK_CLEAN_IGNORE` — space-separated basenames/globs — widens what counts as disposable noise, but additional exclusions are only for genuine generated or runtime files. Using it to slip a real change past the abort gate is `--force` by another name and needs the same explicit confirmation.)
 
    **Check standalone deliverables only when the task has no git worktree.** If the worktree discovery in step 3 finds any worktree, skip this check; keep the existing worktree checks unchanged. Otherwise, list the task contents and recursively identify files beyond the standard scaffolding:
    ```bash
    task_dir="<workspace>/tasks/<task-name>"
    ls -la "$task_dir"
    find "$task_dir" -mindepth 1 \
-     \( \( -path "$task_dir/.claude" -o -path "$task_dir/tmp" \) -prune \) -o \
+     \( \( -path "$task_dir/.claude" -o -type d -name tmp \) -prune \) -o \
      \( \( -type f -o -type l \) \
        ! -path "$task_dir/AGENTS.md" \
        ! -path "$task_dir/CLAUDE.md" \
@@ -89,7 +90,7 @@ If you are the marked task-clean background worker, skip this section and execut
    ```
    `scripts/task-setup.sh` is authoritative for generated scaffolding in both Claude and Codex modes: it creates `CLAUDE.md` or `AGENTS.md`, optional `prompt.md`, optional `context.md` and `task-input.md`, and Claude's `.claude/settings.local.json`; `.claude/` and Neovim's `.nvimlog` are standard scaffolding/runtime noise. The task-root `plan.md` and `findings.md` are disposable planning/investigation artifacts: delete them with the task without asking for confirmation. These exclusions apply only to `<task>/plan.md` and `<task>/findings.md`, not files with those names inside repositories or other subdirectories. If setup changes, verify any additional exclusions against that script rather than broadly ignoring file types or directories.
 
-   The entire task-root `<task>/tmp/` directory is disposable: skip its contents and delete it with the task without asking for confirmation. This does not exclude nested `tmp/` directories elsewhere in the task or inside repository worktrees.
+   Every `tmp/` directory is disposable: skip its contents and delete it with the task without asking for confirmation. This includes the task root, nested task directories, and repository worktrees.
 
    Report each non-scaffolding file's path and a brief content summary (e.g. the first few lines or its length) in the cleanup report before running step 5. Treat real deliverables like the uncommitted-change blocker in step 3: stop and request the user's go-ahead before deleting them. The dispatching prompt for this specific cleanup may explicitly account for trivial/empty content or content clearly already fully relayed in the conversation and allow cleanup; always perform the check and report what was found. This is a static filesystem check only; do not inspect live agent sessions or tmux pane contents.
 
@@ -134,7 +135,7 @@ If you are the marked task-clean background worker, skip this section and execut
    ```bash
    ${CLAUDE_PLUGIN_ROOT}/scripts/task-clean.sh "<workspace>" "<task-name>" [--force]
    ```
-   - Aborts if any worktree has uncommitted changes other than the generated PR drafts and runtime noise listed in step 3, unless `--force` is passed — so the step 3 check is your safety gate.
+   - Aborts if any worktree has uncommitted changes outside the disposable `tmp/` directories and runtime noise listed in step 3, unless `--force` is passed — so the step 3 check is your safety gate.
    - It discovers every task branch per repo via the `refs/heads/<task-name>/` prefix (so the whole stack of a stacked-PR task is covered, not just each worktree's tip). Branches created inside a worktree with a name that doesn't follow the `<task-name>/` prefix are the exception — they can't be attributed to the task and won't be found; delete those by hand.
    - Before branch deletion it runs `task-branch-status.sh` and deletes only `LANDED` branches, never `DEFAULT`, `UNCONFIRMED`, or `UNKNOWN` branches. It does not trust `git branch -d` alone, which can treat a pushed feature upstream as merged even when the default branch does not contain the work. Squash/rebase PR merges are resolved separately in step 6.
 

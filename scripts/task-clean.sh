@@ -16,14 +16,18 @@ FORCE="${3:-}"
 TASK_DIR="$WORKSPACE/tasks/$TASK_NAME"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
 
-# Generated drafts and runtime/noise files that must not count as uncommitted
+# Disposable tmp directories and runtime/noise files that must not count as uncommitted
 # work — otherwise they'd trigger the abort below and force an unnecessary
 # confirmation. Matched at any depth. Override with TASK_CLEAN_IGNORE
 # (space-separated basenames/globs).
-read -ra _ignore_globs <<< "${TASK_CLEAN_IGNORE:-nohup.out *.log tmp/pr-draft.md tmp/pr-body.md tmp/pr-stack-*.md}"
+read -ra _ignore_globs <<< "${TASK_CLEAN_IGNORE:-nohup.out *.log tmp/}"
 ignore_pathspec=()
 for g in "${_ignore_globs[@]}"; do
-  ignore_pathspec+=(":(exclude)*$g")
+  if [ "$g" = "tmp/" ]; then
+    ignore_pathspec+=(":(glob,exclude)**/tmp/**")
+  else
+    ignore_pathspec+=(":(exclude)*$g")
+  fi
 done
 
 if [ ! -d "$TASK_DIR" ]; then
@@ -42,6 +46,9 @@ find_worktrees() {
 dirty=""
 while IFS= read -r dir; do
   [ -n "$dir" ] || continue
+  case "/${dir#"$TASK_DIR"/}/" in
+    */tmp/*) continue ;;
+  esac
   status=$(git -C "$dir" status --porcelain -- . "${ignore_pathspec[@]}")
   if [ -n "$status" ]; then
     dirty="$dirty\n=== ${dir#$TASK_DIR/} ===\n$status"
